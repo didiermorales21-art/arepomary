@@ -48,7 +48,7 @@ const statusLabel: Record<string, string> = {
 function ProductionPage() {
   const qc = useQueryClient();
   const { user, hasRole } = useAuth();
-  const canManage = hasRole("admin") || hasRole("operations");
+  const canManage = hasRole("admin") || hasRole("operations" as any);
   const [open, setOpen] = useState(false);
 
   const { data: batches, isLoading } = useQuery({
