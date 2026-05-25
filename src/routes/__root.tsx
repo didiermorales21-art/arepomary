@@ -59,14 +59,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Arepomar ERP — Gestión integral de operación" },
+      { title: "Arepomary ERP — Gestión integral de operación" },
       {
         name: "description",
         content:
-          "Plataforma ERP de Arepomar: CRM, ventas, producción, inventario y logística en una sola aplicación.",
+          "Plataforma ERP de Arepomary: CRM, ventas, producción, inventario y logística en una sola aplicación.",
       },
-      { property: "og:title", content: "Arepomar ERP" },
-      { property: "og:description", content: "Operación digital de Arepomar." },
+      { property: "og:title", content: "Arepomary ERP" },
+      { property: "og:description", content: "Operación digital de Arepomary." },
       { property: "og:type", content: "website" },
     ],
     links: [
