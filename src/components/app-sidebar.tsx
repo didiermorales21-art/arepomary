@@ -11,6 +11,9 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  ClipboardList,
+  Warehouse,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,13 +35,16 @@ const navMain = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard },
   { title: "Clientes", url: "/app/customers", icon: Users },
   { title: "Productos", url: "/app/products", icon: Package },
+  { title: "Pedidos", url: "/app/orders", icon: ClipboardList },
   { title: "Ventas", url: "/app/sales", icon: ShoppingCart },
 ];
 
 const navOps = [
   { title: "Zonas", url: "/app/zones", icon: MapPin, soon: false },
-  { title: "Producción", url: "/app/production", icon: Wheat, soon: true },
-  { title: "Inventario", url: "/app/inventory", icon: Boxes, soon: true },
+  { title: "Producción", url: "/app/production", icon: Wheat, soon: false },
+  { title: "Almacenes", url: "/app/warehouses", icon: Warehouse, soon: false },
+  { title: "Inventario", url: "/app/inventory", icon: Boxes, soon: false },
+  { title: "Movimientos", url: "/app/movements", icon: ArrowLeftRight, soon: false },
   { title: "Logística", url: "/app/logistics", icon: Truck, soon: true },
 ];
 
