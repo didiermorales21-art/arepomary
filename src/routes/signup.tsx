@@ -20,22 +20,18 @@ function SignupPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const redirectUrl = typeof window !== "undefined" ? window.location.origin + "/app" : undefined;
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { full_name: fullName },
-      },
+      options: { data: { full_name: fullName } },
     });
     setLoading(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("Cuenta creada. Revisa tu correo para confirmar.");
-    navigate({ to: "/login" });
+    toast.success("Cuenta creada");
+    navigate({ to: "/app" });
   }
 
   return (
