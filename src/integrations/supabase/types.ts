@@ -364,6 +364,7 @@ export type Database = {
         | "production_operator"
         | "logistics_operator"
         | "customer"
+        | "operations"
       customer_status: "active" | "inactive" | "prospect"
       payment_method: "cash" | "transfer" | "card" | "other"
       sale_status: "draft" | "confirmed" | "paid" | "cancelled"
@@ -500,6 +501,7 @@ export const Constants = {
         "production_operator",
         "logistics_operator",
         "customer",
+        "operations",
       ],
       customer_status: ["active", "inactive", "prospect"],
       payment_method: ["cash", "transfer", "card", "other"],
