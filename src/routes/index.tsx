@@ -29,7 +29,7 @@ function Landing() {
               A
             </div>
             <div>
-              <div className="font-display text-lg font-semibold leading-none">Arepomar</div>
+              <div className="font-display text-lg font-semibold leading-none">Arepomary</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">ERP Suite</div>
             </div>
           </div>
@@ -51,7 +51,7 @@ function Landing() {
             <span className="h-1.5 w-1.5 rounded-full bg-gold" /> Plataforma operativa
           </div>
           <h1 className="mt-6 font-display text-5xl font-semibold tracking-tight md:text-6xl">
-            La operación de Arepomar,
+            La operación de Arepomary,
             <br />
             <span className="bg-gradient-gold bg-clip-text text-transparent">unificada y en tiempo real.</span>
           </h1>
@@ -90,7 +90,7 @@ function Landing() {
       </section>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Arepomar — ERP interno.
+        © {new Date().getFullYear()} Arepomary — ERP interno.
       </footer>
     </div>
   );

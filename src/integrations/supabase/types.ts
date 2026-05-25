@@ -64,6 +64,171 @@ export type Database = {
           },
         ]
       }
+      inventory: {
+        Row: {
+          id: string
+          max_stock: number | null
+          min_stock: number
+          product_id: string
+          quantity: number
+          updated_at: string
+          warehouse_id: string
+        }
+        Insert: {
+          id?: string
+          max_stock?: number | null
+          min_stock?: number
+          product_id: string
+          quantity?: number
+          updated_at?: string
+          warehouse_id: string
+        }
+        Update: {
+          id?: string
+          max_stock?: number | null
+          min_stock?: number
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          recorded_by: string | null
+          reference: string | null
+          type: Database["public"]["Enums"]["movement_type"]
+          unit_cost: number
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+          recorded_by?: string | null
+          reference?: string | null
+          type: Database["public"]["Enums"]["movement_type"]
+          unit_cost?: number
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          recorded_by?: string | null
+          reference?: string | null
+          type?: Database["public"]["Enums"]["movement_type"]
+          unit_cost?: number
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          line_total: number | null
+          order_id: string
+          product_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          order_id: string
+          product_id: string
+          quantity: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          order_id?: string
+          product_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_id: string
+          delivery_date: string | null
+          id: string
+          notes: string | null
+          order_number: number
+          seller_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          seller_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          seller_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -136,6 +301,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      production_batches: {
+        Row: {
+          batch_number: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          planned_quantity: number
+          produced_quantity: number
+          product_id: string
+          responsible_id: string | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["batch_status"]
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          batch_number?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          planned_quantity: number
+          produced_quantity?: number
+          product_id: string
+          responsible_id?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          batch_number?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          planned_quantity?: number
+          produced_quantity?: number
+          product_id?: string
+          responsible_id?: string | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["batch_status"]
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -322,6 +538,30 @@ export type Database = {
         }
         Relationships: []
       }
+      warehouses: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
       zones: {
         Row: {
           created_at: string
@@ -355,6 +595,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalc_order_totals: { Args: { _order_id: string }; Returns: undefined }
       recalc_sale_totals: { Args: { _sale_id: string }; Returns: undefined }
     }
     Enums: {
@@ -364,7 +605,23 @@ export type Database = {
         | "production_operator"
         | "logistics_operator"
         | "customer"
+        | "operations"
+      batch_status: "planned" | "in_progress" | "completed" | "cancelled"
       customer_status: "active" | "inactive" | "prospect"
+      movement_type:
+        | "in"
+        | "out"
+        | "adjust"
+        | "production"
+        | "sale"
+        | "transfer"
+      order_status:
+        | "draft"
+        | "confirmed"
+        | "in_production"
+        | "ready"
+        | "delivered"
+        | "cancelled"
       payment_method: "cash" | "transfer" | "card" | "other"
       sale_status: "draft" | "confirmed" | "paid" | "cancelled"
     }
@@ -500,8 +757,19 @@ export const Constants = {
         "production_operator",
         "logistics_operator",
         "customer",
+        "operations",
       ],
+      batch_status: ["planned", "in_progress", "completed", "cancelled"],
       customer_status: ["active", "inactive", "prospect"],
+      movement_type: ["in", "out", "adjust", "production", "sale", "transfer"],
+      order_status: [
+        "draft",
+        "confirmed",
+        "in_production",
+        "ready",
+        "delivered",
+        "cancelled",
+      ],
       payment_method: ["cash", "transfer", "card", "other"],
       sale_status: ["draft", "confirmed", "paid", "cancelled"],
     },

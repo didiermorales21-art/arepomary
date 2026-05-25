@@ -26,7 +26,7 @@ function AppLayout() {
         <SidebarInset className="flex min-h-screen flex-1 flex-col">
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
-            <div className="text-sm text-muted-foreground">Arepomar ERP</div>
+            <div className="text-sm text-muted-foreground">Arepomary ERP</div>
           </header>
           <main className="flex-1">
             <Outlet />

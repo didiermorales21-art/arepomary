@@ -44,7 +44,7 @@ function LoginPage() {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-gold text-gold-foreground font-display font-bold">
               A
             </div>
-            <span className="font-display text-lg font-semibold">Arepomar</span>
+            <span className="font-display text-lg font-semibold">Arepomary</span>
           </Link>
           <div>
             <h2 className="font-display text-4xl font-semibold leading-tight">
