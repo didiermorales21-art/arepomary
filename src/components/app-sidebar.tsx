@@ -130,9 +130,23 @@ export function AppSidebar() {
             <SidebarMenu>
               {navAdmin.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton tooltip={item.title + " (próximamente)"} className="opacity-50">
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                  <SidebarMenuButton
+                    asChild={!item.soon}
+                    isActive={isActive(item.url)}
+                    tooltip={item.title + (item.soon ? " (próximamente)" : "")}
+                    className={item.soon ? "opacity-50" : ""}
+                  >
+                    {item.soon ? (
+                      <div>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </div>
+                    ) : (
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
