@@ -22,6 +22,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          portal_user_id: string | null
           purchase_frequency: string | null
           seller_id: string | null
           status: Database["public"]["Enums"]["customer_status"]
@@ -35,6 +36,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          portal_user_id?: string | null
           purchase_frequency?: string | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
@@ -48,6 +50,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          portal_user_id?: string | null
           purchase_frequency?: string | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
@@ -63,6 +66,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      drivers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          license_plate: string | null
+          name: string
+          phone: string | null
+          vehicle: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          license_plate?: string | null
+          name: string
+          phone?: string | null
+          vehicle?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          license_plate?: string | null
+          name?: string
+          phone?: string | null
+          vehicle?: string | null
+        }
+        Relationships: []
       }
       inventory: {
         Row: {
@@ -517,6 +550,54 @@ export type Database = {
           },
         ]
       }
+      shipments: {
+        Row: {
+          address: string | null
+          created_at: string
+          delivered_at: string | null
+          dispatched_at: string | null
+          driver_id: string | null
+          id: string
+          notes: string | null
+          order_id: string | null
+          scheduled_for: string | null
+          shipment_number: number
+          status: Database["public"]["Enums"]["shipment_status"]
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          driver_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          scheduled_for?: string | null
+          shipment_number?: number
+          status?: Database["public"]["Enums"]["shipment_status"]
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          driver_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string | null
+          scheduled_for?: string | null
+          shipment_number?: number
+          status?: Database["public"]["Enums"]["shipment_status"]
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -624,6 +705,7 @@ export type Database = {
         | "cancelled"
       payment_method: "cash" | "transfer" | "card" | "other"
       sale_status: "draft" | "confirmed" | "paid" | "cancelled"
+      shipment_status: "pending" | "in_transit" | "delivered" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -772,6 +854,7 @@ export const Constants = {
       ],
       payment_method: ["cash", "transfer", "card", "other"],
       sale_status: ["draft", "confirmed", "paid", "cancelled"],
+      shipment_status: ["pending", "in_transit", "delivered", "cancelled"],
     },
   },
 } as const
