@@ -12,7 +12,7 @@ export const Route = createFileRoute("/app/analytics")({
   component: AnalyticsPage,
 });
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--gold))", "hsl(var(--muted-foreground))", "hsl(var(--destructive))"];
+const COLORS = ["var(--primary)", "var(--gold)", "var(--muted-foreground)", "var(--destructive)"];
 
 function AnalyticsPage() {
   const { data: sales } = useQuery({
@@ -127,7 +127,7 @@ function AnalyticsPage() {
                   <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip formatter={(v: number) => money(v)} />
-                  <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} />
+                  <Line type="monotone" dataKey="value" stroke="var(--primary)" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -157,7 +157,7 @@ function AnalyticsPage() {
                   <XAxis type="number" />
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip formatter={(v: number) => money(v)} />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="value" fill="var(--primary)" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -172,7 +172,7 @@ function AnalyticsPage() {
                   <XAxis type="number" />
                   <YAxis type="category" dataKey="name" width={120} />
                   <Tooltip formatter={(v: number) => money(v)} />
-                  <Bar dataKey="value" fill="hsl(var(--gold))" radius={[0, 6, 6, 0]} />
+                  <Bar dataKey="value" fill="var(--gold)" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

@@ -45,11 +45,11 @@ const navOps = [
   { title: "Almacenes", url: "/app/warehouses", icon: Warehouse, soon: false },
   { title: "Inventario", url: "/app/inventory", icon: Boxes, soon: false },
   { title: "Movimientos", url: "/app/movements", icon: ArrowLeftRight, soon: false },
-  { title: "Logística", url: "/app/logistics", icon: Truck, soon: true },
+  { title: "Logística", url: "/app/logistics", icon: Truck, soon: false },
 ];
 
 const navAdmin = [
-  { title: "Analytics", url: "/app/analytics", icon: BarChart3, soon: true },
+  { title: "Analytics", url: "/app/analytics", icon: BarChart3, soon: false },
   { title: "Configuración", url: "/app/settings", icon: Settings, soon: true },
 ];
 
