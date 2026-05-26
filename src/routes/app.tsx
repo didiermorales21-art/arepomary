@@ -1,11 +1,42 @@
-import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Navigate, useRouter, useRouterState, Link } from "@tanstack/react-router";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Home } from "lucide-react";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
 });
+
+function BackButton() {
+  const router = useRouter();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const atRoot = pathname === "/app" || pathname === "/app/";
+
+  if (atRoot) {
+    return (
+      <Button asChild variant="ghost" size="sm" className="gap-1.5">
+        <Link to="/">
+          <Home className="h-4 w-4" /> Inicio
+        </Link>
+      </Button>
+    );
+  }
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1.5"
+      onClick={() => {
+        if (window.history.length > 1) router.history.back();
+        else router.navigate({ to: "/app" });
+      }}
+    >
+      <ArrowLeft className="h-4 w-4" /> Atrás
+    </Button>
+  );
+}
 
 function AppLayout() {
   const { user, loading } = useAuth();
@@ -24,9 +55,10 @@ function AppLayout() {
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex min-h-screen flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">
             <SidebarTrigger />
-            <div className="text-sm text-muted-foreground">Arepomary ERP</div>
+            <BackButton />
+            <div className="ml-auto text-sm text-muted-foreground">Arepomary ERP</div>
           </header>
           <main className="flex-1">
             <Outlet />
@@ -36,3 +68,4 @@ function AppLayout() {
     </SidebarProvider>
   );
 }
+
