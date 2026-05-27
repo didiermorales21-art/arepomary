@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity: string
+          entity_id: string | null
+          id: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      company_settings: {
+        Row: {
+          address: string | null
+          company_name: string
+          created_at: string
+          currency: string
+          email: string | null
+          id: string
+          legal_name: string | null
+          logo_url: string | null
+          phone: string | null
+          tax_id: string | null
+          tax_rate: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          tax_rate?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          created_at?: string
+          currency?: string
+          email?: string | null
+          id?: string
+          legal_name?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          tax_rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null

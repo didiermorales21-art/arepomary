@@ -14,6 +14,8 @@ import {
   ClipboardList,
   Warehouse,
   ArrowLeftRight,
+  ShieldCheck,
+  UserCog,
 } from "lucide-react";
 import {
   Sidebar,
@@ -50,7 +52,9 @@ const navOps = [
 
 const navAdmin = [
   { title: "Analytics", url: "/app/analytics", icon: BarChart3, soon: false },
-  { title: "Configuración", url: "/app/settings", icon: Settings, soon: true },
+  { title: "Usuarios", url: "/app/users", icon: UserCog, soon: false },
+  { title: "Auditoría", url: "/app/audit", icon: ShieldCheck, soon: false },
+  { title: "Configuración", url: "/app/settings", icon: Settings, soon: false },
 ];
 
 export function AppSidebar() {
