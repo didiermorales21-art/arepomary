@@ -330,17 +330,14 @@ function InvoicesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {(detailItems ?? []).map((it: { id: string; quantity: number; unit_price: number; line_total: number; products: { name: string } | { name: string }[] | null }) => {
-                        const p = Array.isArray(it.products) ? it.products[0] : it.products;
-                        return (
+                      {(detailItems ?? []).map((it) => (
                           <TableRow key={it.id}>
-                            <TableCell>{p?.name ?? "—"}</TableCell>
+                            <TableCell>{it.product?.name ?? "—"}</TableCell>
                             <TableCell className="text-right">{it.quantity}</TableCell>
                             <TableCell className="text-right">{fmtMoney(Number(it.unit_price))}</TableCell>
                             <TableCell className="text-right">{fmtMoney(Number(it.line_total))}</TableCell>
                           </TableRow>
-                        );
-                      })}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
