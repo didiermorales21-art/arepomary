@@ -176,9 +176,13 @@ function InvoicesPage() {
   const downloadInvoicePdf = async (inv: InvoiceRow) => {
     const { data: items } = await supabase
       .from("invoice_items")
-      .select("quantity, unit_price, products(name)")
+      .select("quantity, unit_price, product_id")
       .eq("invoice_id", inv.id);
-    type Row = { quantity: number; unit_price: number; products: { name: string } | { name: string }[] | null };
+    const ids = Array.from(new Set((items ?? []).map((i) => i.product_id)));
+    const { data: prods } = ids.length
+      ? await supabase.from("products").select("id, name").in("id", ids)
+      : { data: [] };
+    const pmap = new Map((prods ?? []).map((p) => [p.id, p.name]));
     generateInvoicePdf({
       number: inv.invoice_number,
       issued_at: inv.issued_at,
@@ -187,14 +191,11 @@ function InvoicesPage() {
       tax: 0,
       notes: inv.notes,
       company,
-      lines: ((items ?? []) as Row[]).map((it) => {
-        const p = Array.isArray(it.products) ? it.products[0] : it.products;
-        return {
-          description: p?.name ?? "Producto",
-          quantity: Number(it.quantity),
-          unit_price: Number(it.unit_price),
-        };
-      }),
+      lines: (items ?? []).map((it) => ({
+        description: pmap.get(it.product_id) ?? "Producto",
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+      })),
     });
   };
 
