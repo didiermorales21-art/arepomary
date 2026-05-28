@@ -47,6 +47,123 @@ export type Database = {
         }
         Relationships: []
       }
+      bill_items: {
+        Row: {
+          bill_id: string
+          created_at: string
+          description: string
+          id: string
+          line_total: number | null
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          description: string
+          id?: string
+          line_total?: number | null
+          quantity?: number
+          unit_price: number
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          line_total?: number | null
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      bill_payments: {
+        Row: {
+          amount: number
+          bill_id: string
+          created_at: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          bill_id: string
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: []
+      }
+      bills: {
+        Row: {
+          balance: number | null
+          bill_number: number
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          issued_at: string
+          notes: string | null
+          paid: number
+          status: Database["public"]["Enums"]["bill_status"]
+          subtotal: number
+          supplier_id: string
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          bill_number?: number
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          paid?: number
+          status?: Database["public"]["Enums"]["bill_status"]
+          subtotal?: number
+          supplier_id: string
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          bill_number?: number
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          issued_at?: string
+          notes?: string | null
+          paid?: number
+          status?: Database["public"]["Enums"]["bill_status"]
+          subtotal?: number
+          supplier_id?: string
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
@@ -256,6 +373,126 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      invoice_items: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_id: string
+          line_total: number | null
+          product_id: string
+          quantity: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_id: string
+          line_total?: number | null
+          product_id: string
+          quantity: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          line_total?: number | null
+          product_id?: string
+          quantity?: number
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          paid_at: string
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          balance: number | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_date: string | null
+          id: string
+          invoice_number: number
+          issued_at: string
+          notes: string | null
+          paid: number
+          sale_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: number
+          issued_at?: string
+          notes?: string | null
+          paid?: number
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          due_date?: string | null
+          id?: string
+          invoice_number?: number
+          issued_at?: string
+          notes?: string | null
+          paid?: number
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          subtotal?: number
+          tax?: number
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       order_items: {
         Row: {
@@ -676,6 +913,45 @@ export type Database = {
         }
         Relationships: []
       }
+      suppliers: {
+        Row: {
+          active: boolean
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -754,6 +1030,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      recalc_bill_totals: { Args: { _bill_id: string }; Returns: undefined }
+      recalc_invoice_totals: {
+        Args: { _invoice_id: string }
+        Returns: undefined
+      }
       recalc_order_totals: { Args: { _order_id: string }; Returns: undefined }
       recalc_sale_totals: { Args: { _sale_id: string }; Returns: undefined }
     }
@@ -766,7 +1047,9 @@ export type Database = {
         | "customer"
         | "operations"
       batch_status: "planned" | "in_progress" | "completed" | "cancelled"
+      bill_status: "draft" | "received" | "paid" | "overdue" | "cancelled"
       customer_status: "active" | "inactive" | "prospect"
+      invoice_status: "draft" | "issued" | "paid" | "overdue" | "cancelled"
       movement_type:
         | "in"
         | "out"
@@ -920,7 +1203,9 @@ export const Constants = {
         "operations",
       ],
       batch_status: ["planned", "in_progress", "completed", "cancelled"],
+      bill_status: ["draft", "received", "paid", "overdue", "cancelled"],
       customer_status: ["active", "inactive", "prospect"],
+      invoice_status: ["draft", "issued", "paid", "overdue", "cancelled"],
       movement_type: ["in", "out", "adjust", "production", "sale", "transfer"],
       order_status: [
         "draft",
