@@ -84,11 +84,16 @@ function InvoicesPage() {
     queryKey: ["invoice-items", detail?.id],
     enabled: !!detail?.id,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: items } = await supabase
         .from("invoice_items")
-        .select("id, quantity, unit_price, line_total, products(name, sku)")
+        .select("id, quantity, unit_price, line_total, product_id")
         .eq("invoice_id", detail!.id);
-      return data ?? [];
+      const ids = Array.from(new Set((items ?? []).map((i) => i.product_id)));
+      const { data: prods } = ids.length
+        ? await supabase.from("products").select("id, name, sku").in("id", ids)
+        : { data: [] };
+      const map = new Map((prods ?? []).map((p) => [p.id, p]));
+      return (items ?? []).map((i) => ({ ...i, product: map.get(i.product_id) }));
     },
   });
 
