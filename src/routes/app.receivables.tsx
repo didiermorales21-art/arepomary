@@ -33,20 +33,23 @@ function ReceivablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("customer_id, due_date, balance, customers(name)")
+        .select("customer_id, due_date, balance")
         .gt("balance", 0)
         .neq("status", "cancelled");
       if (error) throw error;
+      const ids = Array.from(new Set((data ?? []).map((i) => i.customer_id)));
+      const { data: customers } = ids.length
+        ? await supabase.from("customers").select("id, name").in("id", ids)
+        : { data: [] };
+      const nameMap = new Map((customers ?? []).map((c) => [c.id, c.name]));
       const today = new Date();
       const buckets = new Map<string, Row>();
       (data ?? []).forEach((inv) => {
-        const c = inv.customers as { name: string } | { name: string }[] | null;
-        const name = Array.isArray(c) ? c[0]?.name : c?.name;
         const id = inv.customer_id;
         const bal = Number(inv.balance || 0);
         const due = inv.due_date ? new Date(inv.due_date) : null;
         const days = due ? Math.floor((today.getTime() - due.getTime()) / 86400000) : 0;
-        const r = buckets.get(id) ?? { customer_id: id, name: name ?? "—", current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0, total: 0 };
+        const r = buckets.get(id) ?? { customer_id: id, name: nameMap.get(id) ?? "—", current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0, total: 0 };
         if (days <= 0) r.current += bal;
         else if (days <= 30) r.d30 += bal;
         else if (days <= 60) r.d60 += bal;
