@@ -73,10 +73,15 @@ function InvoicesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("id, invoice_number, issued_at, due_date, total, paid, balance, status, customer_id, notes, customers(name, tax_id, address, phone)")
+        .select("id, invoice_number, issued_at, due_date, total, paid, balance, status, customer_id, notes")
         .order("issued_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as InvoiceRow[];
+      const ids = Array.from(new Set((data ?? []).map((i) => i.customer_id)));
+      const { data: cs } = ids.length
+        ? await supabase.from("customers").select("id, name, address, phone").in("id", ids)
+        : { data: [] };
+      const map = new Map((cs ?? []).map((c) => [c.id, c]));
+      return (data ?? []).map((i) => ({ ...i, customers: map.get(i.customer_id) ?? null })) as unknown as InvoiceRow[];
     },
   });
 
