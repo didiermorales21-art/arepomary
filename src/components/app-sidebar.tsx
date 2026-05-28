@@ -16,6 +16,10 @@ import {
   ArrowLeftRight,
   ShieldCheck,
   UserCog,
+  Receipt,
+  Wallet,
+  FileText,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,6 +52,14 @@ const navOps = [
   { title: "Inventario", url: "/app/inventory", icon: Boxes, soon: false },
   { title: "Movimientos", url: "/app/movements", icon: ArrowLeftRight, soon: false },
   { title: "Logística", url: "/app/logistics", icon: Truck, soon: false },
+];
+
+const navFinance = [
+  { title: "Facturas", url: "/app/invoices", icon: Receipt, soon: false },
+  { title: "Cuentas por cobrar", url: "/app/receivables", icon: Wallet, soon: false },
+  { title: "Proveedores", url: "/app/suppliers", icon: Building2, soon: false },
+  { title: "Cuentas por pagar", url: "/app/payables", icon: FileText, soon: false },
+  { title: "Reportes", url: "/app/reports", icon: BarChart3, soon: false },
 ];
 
 const navAdmin = [
