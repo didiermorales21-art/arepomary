@@ -213,8 +213,10 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          document_id: string | null
           id: string
           name: string
+          neighborhood_id: string | null
           notes: string | null
           phone: string | null
           portal_user_id: string | null
@@ -227,8 +229,10 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          document_id?: string | null
           id?: string
           name: string
+          neighborhood_id?: string | null
           notes?: string | null
           phone?: string | null
           portal_user_id?: string | null
@@ -241,8 +245,10 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          document_id?: string | null
           id?: string
           name?: string
+          neighborhood_id?: string | null
           notes?: string | null
           phone?: string | null
           portal_user_id?: string | null
@@ -253,6 +259,13 @@ export type Database = {
           zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_neighborhood_id_fkey"
+            columns: ["neighborhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_zone_id_fkey"
             columns: ["zone_id"]
@@ -494,6 +507,41 @@ export type Database = {
         }
         Relationships: []
       }
+      neighborhoods: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          zone_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          zone_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neighborhoods_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -540,7 +588,7 @@ export type Database = {
           id: string
           notes: string | null
           order_number: number
-          seller_id: string
+          seller_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           tax: number
@@ -554,7 +602,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: number
-          seller_id: string
+          seller_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
@@ -568,7 +616,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_number?: number
-          seller_id?: string
+          seller_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           tax?: number
@@ -1023,6 +1071,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_guest_order: {
+        Args: {
+          _address: string
+          _document_id: string
+          _items: Json
+          _name: string
+          _neighborhood_id: string
+          _notes: string
+          _phone: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
