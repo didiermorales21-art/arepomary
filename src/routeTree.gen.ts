@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PortalRouteImport } from './routes/portal'
+import { Route as OrderRouteImport } from './routes/order'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
@@ -34,6 +35,7 @@ import { Route as AppInventoryRouteImport } from './routes/app.inventory'
 import { Route as AppCustomersRouteImport } from './routes/app.customers'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -43,6 +45,11 @@ const SignupRoute = SignupRouteImport.update({
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrderRoute = OrderRouteImport.update({
+  id: '/order',
+  path: '/order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -160,11 +167,17 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/order': typeof OrderRoute
   '/portal': typeof PortalRoute
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -187,10 +200,12 @@ export interface FileRoutesByFullPath {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app/': typeof AppIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/order': typeof OrderRoute
   '/portal': typeof PortalRoute
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -213,12 +228,14 @@ export interface FileRoutesByTo {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app': typeof AppIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
+  '/order': typeof OrderRoute
   '/portal': typeof PortalRoute
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
@@ -241,6 +258,7 @@ export interface FileRoutesById {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app/': typeof AppIndexRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -248,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/login'
+    | '/order'
     | '/portal'
     | '/signup'
     | '/app/analytics'
@@ -270,10 +289,12 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app/'
+    | '/api/public/bootstrap-admin'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/order'
     | '/portal'
     | '/signup'
     | '/app/analytics'
@@ -296,11 +317,13 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app'
+    | '/api/public/bootstrap-admin'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/login'
+    | '/order'
     | '/portal'
     | '/signup'
     | '/app/analytics'
@@ -323,14 +346,17 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app/'
+    | '/api/public/bootstrap-admin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  OrderRoute: typeof OrderRoute
   PortalRoute: typeof PortalRoute
   SignupRoute: typeof SignupRoute
+  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -347,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/portal'
       fullPath: '/portal'
       preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/order': {
+      id: '/order'
+      path: '/order'
+      fullPath: '/order'
+      preLoaderRoute: typeof OrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -510,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -565,8 +605,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  OrderRoute: OrderRoute,
   PortalRoute: PortalRoute,
   SignupRoute: SignupRoute,
+  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
