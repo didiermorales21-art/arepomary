@@ -27,6 +27,7 @@ import { Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { isValidPhone, sanitizePhoneInput, PHONE_INPUT_PROPS } from "@/lib/phone";
 
 export const Route = createFileRoute("/app/customers")({
   component: CustomersPage,
@@ -37,10 +38,12 @@ function CustomersPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [phone, setPhone] = useState("");
 
-  const { data: zones } = useQuery({
-    queryKey: ["zones"],
-    queryFn: async () => (await supabase.from("zones").select("id, name").order("name")).data ?? [],
+  const { data: neighborhoods } = useQuery({
+    queryKey: ["neighborhoods"],
+    queryFn: async () =>
+      (await supabase.from("neighborhoods").select("id, name, zones(name)").eq("active", true).order("name")).data ?? [],
   });
 
   const { data: customers, isLoading } = useQuery({
@@ -48,7 +51,7 @@ function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, address, status, zone_id, purchase_frequency, created_at, zones(name)")
+        .select("id, name, phone, address, status, document_id, neighborhood_id, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -59,9 +62,10 @@ function CustomersPage() {
     const q = search.toLowerCase().trim();
     if (!q) return customers ?? [];
     return (customers ?? []).filter(
-      (c) =>
+      (c: any) =>
         c.name.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
+        c.document_id?.toLowerCase().includes(q) ||
         c.address?.toLowerCase().includes(q),
     );
   }, [customers, search]);
@@ -69,24 +73,32 @@ function CustomersPage() {
   const createMutation = useMutation({
     mutationFn: async (input: {
       name: string;
+      document_id: string;
       phone: string;
       address: string;
-      zone_id: string | null;
-      purchase_frequency: string;
+      neighborhood_id: string | null;
       notes: string;
     }) => {
       if (!user) throw new Error("Sin sesión");
+      if (!isValidPhone(input.phone)) {
+        throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
+      }
       const { error } = await supabase.from("customers").insert({
-        ...input,
-        zone_id: input.zone_id || null,
+        name: input.name,
+        document_id: input.document_id || null,
+        phone: input.phone,
+        address: input.address,
+        neighborhood_id: input.neighborhood_id,
+        notes: input.notes,
         seller_id: user.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Cliente creado");
       setOpen(false);
+      setPhone("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -95,7 +107,7 @@ function CustomersPage() {
     <>
       <PageHeader
         title="Clientes"
-        description="Gestiona la base de clientes, asigna zona y vendedor."
+        description="Gestiona la base de clientes y su asignación por barrio."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
@@ -115,46 +127,56 @@ function CustomersPage() {
                   const fd = new FormData(e.currentTarget);
                   createMutation.mutate({
                     name: String(fd.get("name") || ""),
-                    phone: String(fd.get("phone") || ""),
+                    document_id: String(fd.get("document_id") || ""),
+                    phone,
                     address: String(fd.get("address") || ""),
-                    zone_id: (fd.get("zone_id") as string) || null,
-                    purchase_frequency: String(fd.get("purchase_frequency") || ""),
+                    neighborhood_id: (fd.get("neighborhood_id") as string) || null,
                     notes: String(fd.get("notes") || ""),
                   });
                 }}
               >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="document_id">Documento</Label>
+                    <Input id="document_id" name="document_id" inputMode="numeric" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Teléfono</Label>
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
+                      required
+                      {...PHONE_INPUT_PROPS}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Nombre</Label>
                   <Input id="name" name="name" required />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input id="phone" name="phone" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="purchase_frequency">Frecuencia</Label>
-                    <Input id="purchase_frequency" name="purchase_frequency" placeholder="Semanal, quincenal…" />
-                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Dirección</Label>
                   <Input id="address" name="address" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="zone_id">Zona</Label>
-                  <Select name="zone_id">
+                  <Label htmlFor="neighborhood_id">Barrio</Label>
+                  <Select name="neighborhood_id">
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una zona" />
+                      <SelectValue placeholder="Selecciona un barrio" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(zones ?? []).map((z) => (
-                        <SelectItem key={z.id} value={z.id}>
-                          {z.name}
+                      {(neighborhoods ?? []).map((n: any) => (
+                        <SelectItem key={n.id} value={n.id}>
+                          {n.name}
+                          {n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    La zona se asigna automáticamente según el barrio.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas</Label>
@@ -174,7 +196,7 @@ function CustomersPage() {
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, teléfono…"
+            placeholder="Buscar por nombre, documento, teléfono…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -186,22 +208,23 @@ function CustomersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nombre</TableHead>
+                <TableHead>Documento</TableHead>
                 <TableHead>Teléfono</TableHead>
+                <TableHead>Barrio</TableHead>
                 <TableHead>Zona</TableHead>
-                <TableHead>Frecuencia</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -209,9 +232,10 @@ function CustomersPage() {
                 filtered.map((c: any) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{c.document_id || "—"}</TableCell>
                     <TableCell>{c.phone || "—"}</TableCell>
-                    <TableCell>{c.zones?.name || "—"}</TableCell>
-                    <TableCell>{c.purchase_frequency || "—"}</TableCell>
+                    <TableCell>{c.neighborhoods?.name || "—"}</TableCell>
+                    <TableCell>{c.neighborhoods?.zones?.name || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
                     </TableCell>

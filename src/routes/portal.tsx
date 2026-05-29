@@ -5,7 +5,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, LogOut, Package, ShoppingCart, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, LogOut, Package, ShoppingCart, Wallet, KeyRound } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/portal")({
   component: CustomerPortal,
@@ -13,6 +17,9 @@ export const Route = createFileRoute("/portal")({
 
 function CustomerPortal() {
   const { user, loading, signOut } = useAuth();
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [changing, setChanging] = useState(false);
 
   const { data: customer } = useQuery({
     queryKey: ["portal-customer", user?.id],
@@ -20,7 +27,7 @@ function CustomerPortal() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("*, zones(name)")
+        .select("*, neighborhoods(name, zones(name))")
         .eq("portal_user_id", user!.id)
         .maybeSingle();
       if (error) throw error;
@@ -55,6 +62,28 @@ function CustomerPortal() {
       return data ?? [];
     },
   });
+
+  async function onChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPwd.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      toast.error("Las contraseñas no coinciden.");
+      return;
+    }
+    setChanging(true);
+    const { error } = await supabase.auth.updateUser({ password: newPwd });
+    setChanging(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Contraseña actualizada");
+    setNewPwd("");
+    setConfirmPwd("");
+  }
 
   if (loading) {
     return (
@@ -194,6 +223,45 @@ function CustomerPortal() {
             </Card>
           </>
         )}
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-display text-base">
+              <KeyRound className="h-4 w-4" /> Cambiar contraseña
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onChangePassword} className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="newpwd">Nueva contraseña</Label>
+                <Input
+                  id="newpwd"
+                  type="password"
+                  minLength={6}
+                  required
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmpwd">Confirmar contraseña</Label>
+                <Input
+                  id="confirmpwd"
+                  type="password"
+                  minLength={6}
+                  required
+                  value={confirmPwd}
+                  onChange={(e) => setConfirmPwd(e.target.value)}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Button type="submit" disabled={changing} className="bg-gradient-primary">
+                  {changing ? "Actualizando…" : "Actualizar contraseña"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
