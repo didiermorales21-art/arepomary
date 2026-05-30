@@ -42,7 +42,7 @@ function GuestOrderPage() {
   const { data: products } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, price, unit").eq("active", true).order("name")).data ?? [],
+      (await supabase.from("products").select("id, name, price, unit, image_url").eq("active", true).order("name")).data ?? [],
   });
 
   const { data: neighborhoods } = useQuery({
