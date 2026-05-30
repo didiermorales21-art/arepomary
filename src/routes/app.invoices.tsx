@@ -401,39 +401,11 @@ function InvoicesPage() {
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle className="font-display">Registrar pago</DialogTitle></DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget);
-              addPayment.mutate({
-                amount: Number(fd.get("amount") || 0),
-                method: String(fd.get("method") || "cash"),
-                reference: String(fd.get("reference") || ""),
-              });
-            }}
-          >
-            <div className="space-y-2"><Label htmlFor="amount">Monto</Label><Input id="amount" name="amount" type="number" step="0.01" required defaultValue={detail?.balance} /></div>
-            <div className="space-y-2">
-              <Label htmlFor="method">Método</Label>
-              <Select name="method" defaultValue="cash">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Efectivo</SelectItem>
-                  <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                  <SelectItem value="check">Cheque</SelectItem>
-                  <SelectItem value="credit">Crédito</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" name="reference" /></div>
-            <DialogFooter>
-              <Button type="submit" disabled={addPayment.isPending} className="bg-gradient-primary">
-                {addPayment.isPending ? "Guardando…" : "Registrar"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <PaymentForm
+            pendiente={Number(detail?.total ?? 0) - Number(detail?.paid ?? 0)}
+            isPending={addPayment.isPending}
+            onSubmit={(v) => addPayment.mutate(v)}
+          />
         </DialogContent>
       </Dialog>
     </>
