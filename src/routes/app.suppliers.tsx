@@ -15,6 +15,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 
 export const Route = createFileRoute("/app/suppliers")({
   component: SuppliersPage,
@@ -73,11 +74,16 @@ function SuppliersPage() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
+                    const phone = String(fd.get("phone") || "");
+                    if (phone && !isValidPhone(phone)) {
+                      toast.error("El teléfono debe tener 10 dígitos y comenzar con 3");
+                      return;
+                    }
                     createMutation.mutate({
                       name: String(fd.get("name") || ""),
                       tax_id: String(fd.get("tax_id") || ""),
                       email: String(fd.get("email") || ""),
-                      phone: String(fd.get("phone") || ""),
+                      phone,
                       address: String(fd.get("address") || ""),
                       notes: String(fd.get("notes") || ""),
                     });
@@ -86,7 +92,7 @@ function SuppliersPage() {
                   <div className="space-y-2"><Label htmlFor="name">Nombre</Label><Input id="name" name="name" required /></div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2"><Label htmlFor="tax_id">NIT</Label><Input id="tax_id" name="tax_id" /></div>
-                    <div className="space-y-2"><Label htmlFor="phone">Teléfono</Label><Input id="phone" name="phone" /></div>
+                    <div className="space-y-2"><Label htmlFor="phone">Teléfono</Label><Input id="phone" name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
                   </div>
                   <div className="space-y-2"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" /></div>
                   <div className="space-y-2"><Label htmlFor="address">Dirección</Label><Input id="address" name="address" /></div>

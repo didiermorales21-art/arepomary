@@ -19,6 +19,7 @@ import { Plus, Truck, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
@@ -147,9 +148,14 @@ function LogisticsPage() {
                     onSubmit={(e) => {
                       e.preventDefault();
                       const fd = new FormData(e.currentTarget);
+                      const phone = String(fd.get("phone") || "");
+                      if (phone && !isValidPhone(phone)) {
+                        toast.error("El teléfono debe tener 10 dígitos y comenzar con 3");
+                        return;
+                      }
                       createDriver.mutate({
                         name: String(fd.get("name") || ""),
-                        phone: String(fd.get("phone") || "") || null,
+                        phone: phone || null,
                         license_plate: String(fd.get("license_plate") || "") || null,
                         vehicle: String(fd.get("vehicle") || "") || null,
                       });
@@ -157,7 +163,7 @@ function LogisticsPage() {
                   >
                     <div className="space-y-2"><Label>Nombre</Label><Input name="name" required /></div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" /></div>
+                      <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
                       <div className="space-y-2"><Label>Placa</Label><Input name="license_plate" /></div>
                     </div>
                     <div className="space-y-2"><Label>Vehículo</Label><Input name="vehicle" placeholder="Camioneta NPR" /></div>
