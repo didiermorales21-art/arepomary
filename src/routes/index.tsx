@@ -22,7 +22,7 @@ function Landing() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, unit")
+        .select("id, name, description, price, unit, image_url")
         .eq("active", true)
         .order("name")
         .limit(8);
