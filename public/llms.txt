@@ -1,0 +1,10 @@
+# Arepomary
+
+> Arepas artesanales hechas a mano con maíz seleccionado. Pide en minutos y recíbelas frescas en tu casa o negocio.
+
+Arepomary es una marca de arepas artesanales colombianas que conecta productores con consumidores finales y negocios. El sitio permite a los clientes explorar el catálogo de productos, realizar pedidos sin necesidad de registro, y a los clientes registrados acceder a su portal para ver historial de pedidos, facturas y saldo pendiente. La plataforma también incluye un sistema administrativo completo para gestión de inventario, producción, ventas, logística, proveedores, clientes, vendedores, cuentas por cobrar y pagar, y generación de informes.
+
+## Pages
+
+- [Inicio](/): Página principal con catálogo de productos, información de la marca y enlaces para hacer pedido o crear cuenta.
+- [Hacer pedido](/order): Formulario público para que clientes nuevos o recurrentes seleccionen productos, ingresen sus datos de entrega y envíen un pedido. Autocompleta datos si el cliente ya existe.
