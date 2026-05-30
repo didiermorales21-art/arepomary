@@ -16,7 +16,7 @@ function InventoryPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory" as any)
-        .select("id, quantity, min_stock, max_stock, updated_at, products(name, sku, unit), warehouses(name)")
+        .select("id, quantity, min_stock, max_stock, updated_at, products(name, sku, unit, image_url), warehouses(name)")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
