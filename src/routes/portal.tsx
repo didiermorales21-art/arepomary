@@ -262,7 +262,7 @@ function CustomerPortal() {
             </form>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }
