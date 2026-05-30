@@ -331,23 +331,27 @@ function OrdersPage() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-[180px]">Avanzar</TableHead>
+                <TableHead className="w-[170px]">Venta</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : (orders ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                     Aún no hay pedidos.
                   </TableCell>
                 </TableRow>
               ) : (
-                (orders ?? []).map((o: any) => (
+                (orders ?? []).map((o: any) => {
+                  const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
+                  const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
+                  return (
                   <TableRow key={o.id}>
                     <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
                     <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
@@ -375,8 +379,25 @@ function OrdersPage() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      {existingSale ? (
+                        <Badge variant="default" className="font-mono text-xs">
+                          Venta #{existingSale.sale_number}
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!canConvert || convertMutation.isPending}
+                          onClick={() => convertMutation.mutate(o.id)}
+                        >
+                          Convertir en venta
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
