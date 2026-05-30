@@ -274,7 +274,16 @@ function ProductionPage() {
                 (batches ?? []).map((b: any) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono text-xs">#{b.batch_number}</TableCell>
-                    <TableCell className="font-medium">{b.products?.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        {b.products?.image_url ? (
+                          <img src={b.products.image_url} alt={b.products.name} className="h-9 w-9 rounded object-cover" />
+                        ) : (
+                          <div className="h-9 w-9 rounded bg-muted" />
+                        )}
+                        <span>{b.products?.name ?? "—"}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>{b.scheduled_for ? new Date(b.scheduled_for).toLocaleDateString("es-CO") : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.planned_quantity} / {b.produced_quantity}</TableCell>
                     <TableCell>
