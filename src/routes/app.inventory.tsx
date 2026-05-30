@@ -52,7 +52,16 @@ function InventoryPage() {
                   const low = Number(r.quantity) <= Number(r.min_stock);
                   return (
                     <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.products?.name ?? "—"}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          {r.products?.image_url ? (
+                            <img src={r.products.image_url} alt={r.products.name} className="h-9 w-9 rounded object-cover" />
+                          ) : (
+                            <div className="h-9 w-9 rounded bg-muted" />
+                          )}
+                          <span>{r.products?.name ?? "—"}</span>
+                        </div>
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{r.products?.sku ?? "—"}</TableCell>
                       <TableCell>{r.warehouses?.name ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{Number(r.quantity)} {r.products?.unit}</TableCell>
