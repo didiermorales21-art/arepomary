@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileSpreadsheet, FileText, BarChart3, Package, Wheat, Wallet, Receipt } from "lucide-react";
+import { FileSpreadsheet, FileText, BarChart3, Package, Wheat, Wallet, Receipt, UserSquare2 } from "lucide-react";
 import { exportToExcel, exportToPdf, fmtMoney } from "@/lib/export";
 
 export const Route = createFileRoute("/app/reports")({
