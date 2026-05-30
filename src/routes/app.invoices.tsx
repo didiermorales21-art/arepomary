@@ -145,6 +145,13 @@ function InvoicesPage() {
   const addPayment = useMutation({
     mutationFn: async (input: { amount: number; method: string; reference: string }) => {
       if (!detail) throw new Error("Sin factura");
+      const pendiente = Number(detail.total ?? 0) - Number(detail.paid ?? 0);
+      if (!Number.isFinite(input.amount) || input.amount <= 0) {
+        throw new Error("El monto debe ser mayor a 0");
+      }
+      if (input.amount > pendiente + 0.001) {
+        throw new Error(`El monto excede el saldo pendiente (${pendiente.toLocaleString()})`);
+      }
       const { error } = await supabase.from("invoice_payments").insert({
         invoice_id: detail.id,
         amount: input.amount,
@@ -152,11 +159,12 @@ function InvoicesPage() {
         reference: input.reference || null,
       });
       if (error) throw error;
+      return { cubreTotal: Math.abs(input.amount - pendiente) < 0.01 };
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["invoice-payments", detail?.id] });
-      toast.success("Pago registrado");
+      toast.success(res?.cubreTotal ? "Pago total registrado. Factura pagada." : "Pago parcial registrado");
       setPayOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -393,41 +401,60 @@ function InvoicesPage() {
       <Dialog open={payOpen} onOpenChange={setPayOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle className="font-display">Registrar pago</DialogTitle></DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget);
-              addPayment.mutate({
-                amount: Number(fd.get("amount") || 0),
-                method: String(fd.get("method") || "cash"),
-                reference: String(fd.get("reference") || ""),
-              });
-            }}
-          >
-            <div className="space-y-2"><Label htmlFor="amount">Monto</Label><Input id="amount" name="amount" type="number" step="0.01" required defaultValue={detail?.balance} /></div>
-            <div className="space-y-2">
-              <Label htmlFor="method">Método</Label>
-              <Select name="method" defaultValue="cash">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Efectivo</SelectItem>
-                  <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                  <SelectItem value="check">Cheque</SelectItem>
-                  <SelectItem value="credit">Crédito</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" name="reference" /></div>
-            <DialogFooter>
-              <Button type="submit" disabled={addPayment.isPending} className="bg-gradient-primary">
-                {addPayment.isPending ? "Guardando…" : "Registrar"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <PaymentForm
+            pendiente={Number(detail?.total ?? 0) - Number(detail?.paid ?? 0)}
+            isPending={addPayment.isPending}
+            onSubmit={(v) => addPayment.mutate(v)}
+          />
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function PaymentForm({ pendiente, isPending, onSubmit }: { pendiente: number; isPending: boolean; onSubmit: (v: { amount: number; method: string; reference: string }) => void }) {
+  const [amount, setAmount] = useState<string>(pendiente > 0 ? String(pendiente) : "");
+  const [method, setMethod] = useState("cash");
+  const [reference, setReference] = useState("");
+  const num = Number(amount);
+  const valid = Number.isFinite(num) && num > 0 && num <= pendiente + 0.001;
+  const excede = Number.isFinite(num) && num > pendiente + 0.001;
+  const esTotal = valid && Math.abs(num - pendiente) < 0.01;
+  const esParcial = valid && !esTotal;
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => { e.preventDefault(); if (!valid) return; onSubmit({ amount: num, method, reference }); }}
+    >
+      <div className="rounded-md border bg-muted/40 p-3 text-sm">
+        Saldo pendiente: <span className="font-semibold">${pendiente.toLocaleString()}</span>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="amount">Monto</Label>
+        <Input id="amount" type="number" step="0.01" min="0" max={pendiente} required value={amount} onChange={(e) => setAmount(e.target.value)} />
+        {excede && <p className="text-xs text-destructive">El monto excede el saldo pendiente.</p>}
+        {esTotal && <p className="text-xs text-primary">Este pago cubre la totalidad. La factura quedará pagada.</p>}
+        {esParcial && <p className="text-xs text-muted-foreground">Pago parcial. Quedará un saldo de ${(pendiente - num).toLocaleString()}.</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="method">Método</Label>
+        <Select value={method} onValueChange={setMethod}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cash">Efectivo</SelectItem>
+            <SelectItem value="transfer">Transferencia</SelectItem>
+            <SelectItem value="card">Tarjeta</SelectItem>
+            <SelectItem value="check">Cheque</SelectItem>
+            <SelectItem value="credit">Crédito</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} /></div>
+      <DialogFooter>
+        <Button type="submit" disabled={isPending || !valid} className="bg-gradient-primary">
+          {isPending ? "Guardando…" : "Registrar"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
