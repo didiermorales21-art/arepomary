@@ -35,6 +35,7 @@ interface ProductForm {
   unit: string;
   description: string;
   active: boolean;
+  image_url: string | null;
 }
 
 function ProductsPage() {
