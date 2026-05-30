@@ -60,9 +60,9 @@ function AppLayout() {
             <BackButton />
             <div className="ml-auto text-sm text-muted-foreground">Arepomary ERP</div>
           </header>
-          <main className="flex-1">
+          <div className="flex-1">
             <Outlet />
-          </main>
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>

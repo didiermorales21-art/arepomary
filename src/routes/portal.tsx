@@ -112,7 +112,7 @@ function CustomerPortal() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-6">
         <div className="rounded-2xl border bg-gradient-primary p-8 text-primary-foreground shadow-elegant">
           <p className="text-xs uppercase tracking-widest opacity-80">Portal del cliente</p>
           <h1 className="mt-1 font-display text-3xl font-semibold">
@@ -262,7 +262,7 @@ function CustomerPortal() {
             </form>
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

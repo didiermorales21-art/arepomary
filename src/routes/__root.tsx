@@ -124,7 +124,9 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AuthSyncEffects />
-        <Outlet />
+        <main>
+          <Outlet />
+        </main>
         <Toaster richColors position="top-right" />
       </AuthProvider>
     </QueryClientProvider>
