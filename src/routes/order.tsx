@@ -42,7 +42,7 @@ function GuestOrderPage() {
   const { data: products } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, price, unit").eq("active", true).order("name")).data ?? [],
+      (await supabase.from("products").select("id, name, price, unit, image_url").eq("active", true).order("name")).data ?? [],
   });
 
   const { data: neighborhoods } = useQuery({
@@ -215,13 +215,18 @@ function GuestOrderPage() {
                     type="button"
                     key={p.id}
                     onClick={() => addLine(p.id)}
-                    className="flex items-center justify-between gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary hover:shadow-card"
+                    className="flex items-center gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary hover:shadow-card"
                   >
-                    <div>
-                      <p className="font-medium">{p.name}</p>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.name} className="h-14 w-14 shrink-0 rounded-md object-cover" />
+                    ) : (
+                      <div className="h-14 w-14 shrink-0 rounded-md bg-muted" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{p.name}</p>
                       <p className="text-xs text-muted-foreground">{p.unit}</p>
                     </div>
-                    <span className="font-display font-semibold">{fmt(Number(p.price))}</span>
+                    <span className="font-display font-semibold whitespace-nowrap">{fmt(Number(p.price))}</span>
                   </button>
                 ))}
               </div>

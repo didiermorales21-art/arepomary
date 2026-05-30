@@ -22,7 +22,7 @@ function Landing() {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, unit")
+        .select("id, name, description, price, unit, image_url")
         .eq("active", true)
         .order("name")
         .limit(8);
@@ -112,12 +112,16 @@ function Landing() {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {(products ?? []).map((p) => (
-              <Card key={p.id} className="shadow-card transition hover:-translate-y-0.5 hover:shadow-elegant">
-                <CardContent className="p-5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
-                    <Wheat className="h-5 w-5" />
+              <Card key={p.id} className="overflow-hidden shadow-card transition hover:-translate-y-0.5 hover:shadow-elegant">
+                {p.image_url ? (
+                  <img src={p.image_url} alt={p.name} className="h-40 w-full object-cover" />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-gradient-primary text-primary-foreground">
+                    <Wheat className="h-10 w-10 opacity-80" />
                   </div>
-                  <h3 className="mt-4 font-display text-lg font-semibold">{p.name}</h3>
+                )}
+                <CardContent className="p-5">
+                  <h3 className="font-display text-lg font-semibold">{p.name}</h3>
                   {p.description && (
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{p.description}</p>
                   )}
