@@ -1221,6 +1221,7 @@ export type Database = {
           _neighborhood_id: string
           _notes: string
           _phone: string
+          _seller_id?: string
         }
         Returns: string
       }
@@ -1230,6 +1231,23 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_public_sellers: {
+        Args: never
+        Returns: {
+          full_name: string
+          id: string
+        }[]
+      }
+      lookup_customer_by_document: {
+        Args: { _document_id: string }
+        Returns: {
+          address: string
+          name: string
+          neighborhood_id: string
+          phone: string
+          seller_id: string
+        }[]
       }
       recalc_bill_totals: { Args: { _bill_id: string }; Returns: undefined }
       recalc_invoice_totals: {
