@@ -963,6 +963,7 @@ export type Database = {
           customer_id: string
           id: string
           notes: string | null
+          order_id: string | null
           paid: number
           sale_number: number
           seller_id: string
@@ -978,6 +979,7 @@ export type Database = {
           customer_id: string
           id?: string
           notes?: string | null
+          order_id?: string | null
           paid?: number
           sale_number?: number
           seller_id: string
@@ -993,6 +995,7 @@ export type Database = {
           customer_id?: string
           id?: string
           notes?: string | null
+          order_id?: string | null
           paid?: number
           sale_number?: number
           seller_id?: string
@@ -1008,6 +1011,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -1192,6 +1202,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_order_to_sale: {
+        Args: { _order_id: string }
+        Returns: {
+          id: string
+          sale_number: number
+        }[]
+      }
       create_guest_order: {
         Args: {
           _address: string
