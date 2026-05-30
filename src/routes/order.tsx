@@ -224,6 +224,44 @@ function GuestOrderPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+                <Label>¿Un vendedor te refirió?</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={sellerMode === "alone" ? "default" : "outline"}
+                    onClick={() => {
+                      setSellerMode("alone");
+                      setSellerId("");
+                    }}
+                  >
+                    Llegué por mi cuenta
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={sellerMode === "referred" ? "default" : "outline"}
+                    onClick={() => setSellerMode("referred")}
+                  >
+                    Me refirió un vendedor
+                  </Button>
+                </div>
+                {sellerMode === "referred" && (
+                  <Select value={sellerId} onValueChange={setSellerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona el vendedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(sellers ?? []).map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notas (opcional)</Label>
                 <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
