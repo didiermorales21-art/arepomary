@@ -160,6 +160,7 @@ function CustomersPage() {
                     address: String(fd.get("address") || ""),
                     neighborhood_id: (fd.get("neighborhood_id") as string) || null,
                     notes: String(fd.get("notes") || ""),
+                    seller_id: isAdmin ? sellerId : (user?.id ?? COMPANY_ID),
                   });
                 }}
               >
