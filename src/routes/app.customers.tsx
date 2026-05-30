@@ -353,6 +353,113 @@ function CustomersPage() {
           </Table>
         </div>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Editar cliente</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                updateMutation.mutate({
+                  id: editing.id,
+                  name: String(fd.get("name") || ""),
+                  document_id: String(fd.get("document_id") || ""),
+                  phone: editPhone,
+                  address: String(fd.get("address") || ""),
+                  neighborhood_id: editNeighborhoodId || null,
+                  notes: String(fd.get("notes") || ""),
+                  seller_id: isAdmin ? editSellerId : (editing.seller_id || user?.id || COMPANY_ID),
+                  status: editStatus,
+                });
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="e_document_id">Documento</Label>
+                  <Input id="e_document_id" name="document_id" defaultValue={editing.document_id || ""} inputMode="numeric" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_phone">Teléfono</Label>
+                  <Input
+                    id="e_phone"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))}
+                    {...PHONE_INPUT_PROPS}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_name">Nombre</Label>
+                <Input id="e_name" name="name" defaultValue={editing.name} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_address">Dirección</Label>
+                <Input id="e_address" name="address" defaultValue={editing.address || ""} />
+              </div>
+              <div className="space-y-2">
+                <Label>Barrio</Label>
+                <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un barrio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(neighborhoods ?? []).map((n: any) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.name}
+                        {n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Vendedor asignado</Label>
+                  <Select value={editSellerId} onValueChange={setEditSellerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un vendedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(sellers ?? []).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.full_name || "—"}
+                          {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">active</SelectItem>
+                    <SelectItem value="inactive">inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_notes">Notas</Label>
+                <Textarea id="e_notes" name="notes" defaultValue={editing.notes || ""} rows={3} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={updateMutation.isPending} className="bg-gradient-primary">
+                  {updateMutation.isPending ? "Guardando…" : "Guardar cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
