@@ -411,3 +411,50 @@ function InvoicesPage() {
     </>
   );
 }
+
+function PaymentForm({ pendiente, isPending, onSubmit }: { pendiente: number; isPending: boolean; onSubmit: (v: { amount: number; method: string; reference: string }) => void }) {
+  const [amount, setAmount] = useState<string>(pendiente > 0 ? String(pendiente) : "");
+  const [method, setMethod] = useState("cash");
+  const [reference, setReference] = useState("");
+  const num = Number(amount);
+  const valid = Number.isFinite(num) && num > 0 && num <= pendiente + 0.001;
+  const excede = Number.isFinite(num) && num > pendiente + 0.001;
+  const esTotal = valid && Math.abs(num - pendiente) < 0.01;
+  const esParcial = valid && !esTotal;
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => { e.preventDefault(); if (!valid) return; onSubmit({ amount: num, method, reference }); }}
+    >
+      <div className="rounded-md border bg-muted/40 p-3 text-sm">
+        Saldo pendiente: <span className="font-semibold">${pendiente.toLocaleString()}</span>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="amount">Monto</Label>
+        <Input id="amount" type="number" step="0.01" min="0" max={pendiente} required value={amount} onChange={(e) => setAmount(e.target.value)} />
+        {excede && <p className="text-xs text-destructive">El monto excede el saldo pendiente.</p>}
+        {esTotal && <p className="text-xs text-primary">Este pago cubre la totalidad. La factura quedará pagada.</p>}
+        {esParcial && <p className="text-xs text-muted-foreground">Pago parcial. Quedará un saldo de ${(pendiente - num).toLocaleString()}.</p>}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="method">Método</Label>
+        <Select value={method} onValueChange={setMethod}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cash">Efectivo</SelectItem>
+            <SelectItem value="transfer">Transferencia</SelectItem>
+            <SelectItem value="card">Tarjeta</SelectItem>
+            <SelectItem value="check">Cheque</SelectItem>
+            <SelectItem value="credit">Crédito</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} /></div>
+      <DialogFooter>
+        <Button type="submit" disabled={isPending || !valid} className="bg-gradient-primary">
+          {isPending ? "Guardando…" : "Registrar"}
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
