@@ -73,11 +73,27 @@ function OrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders" as any)
-        .select("id, order_number, total, status, delivery_date, created_at, customers(name)")
+        .select("id, order_number, total, status, delivery_date, created_at, customers(name), sales(id, sale_number)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
     },
+  });
+
+  const convertMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase.rpc("convert_order_to_sale" as any, { _order_id: orderId });
+      if (error) throw error;
+      const row: any = Array.isArray(data) ? data[0] : data;
+      return row as { id: string; sale_number: number };
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["sales"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+      toast.success(`Venta #${res.sale_number} creada`);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const { data: customers } = useQuery({
