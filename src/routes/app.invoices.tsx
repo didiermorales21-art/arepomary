@@ -145,6 +145,13 @@ function InvoicesPage() {
   const addPayment = useMutation({
     mutationFn: async (input: { amount: number; method: string; reference: string }) => {
       if (!detail) throw new Error("Sin factura");
+      const pendiente = Number(detail.total ?? 0) - Number(detail.paid ?? 0);
+      if (!Number.isFinite(input.amount) || input.amount <= 0) {
+        throw new Error("El monto debe ser mayor a 0");
+      }
+      if (input.amount > pendiente + 0.001) {
+        throw new Error(`El monto excede el saldo pendiente (${pendiente.toLocaleString()})`);
+      }
       const { error } = await supabase.from("invoice_payments").insert({
         invoice_id: detail.id,
         amount: input.amount,
@@ -152,11 +159,12 @@ function InvoicesPage() {
         reference: input.reference || null,
       });
       if (error) throw error;
+      return { cubreTotal: Math.abs(input.amount - pendiente) < 0.01 };
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["invoices"] });
       qc.invalidateQueries({ queryKey: ["invoice-payments", detail?.id] });
-      toast.success("Pago registrado");
+      toast.success(res?.cubreTotal ? "Pago total registrado. Factura pagada." : "Pago parcial registrado");
       setPayOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
