@@ -313,18 +313,19 @@ function CustomersPage() {
                 <TableHead>Zona</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -339,6 +340,11 @@ function CustomersPage() {
                     <TableCell className="text-xs">{sellerNameMap.get(c.seller_id) || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
