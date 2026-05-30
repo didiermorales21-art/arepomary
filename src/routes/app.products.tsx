@@ -56,28 +56,20 @@ function ProductsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (input: ProductForm & { id?: string }) => {
+      const payload = {
+        sku: input.sku,
+        name: input.name,
+        price: input.price,
+        unit: input.unit,
+        description: input.description,
+        active: input.active,
+        image_url: input.image_url,
+      };
       if (input.id) {
-        const { error } = await supabase
-          .from("products")
-          .update({
-            sku: input.sku,
-            name: input.name,
-            price: input.price,
-            unit: input.unit,
-            description: input.description,
-            active: input.active,
-          })
-          .eq("id", input.id);
+        const { error } = await supabase.from("products").update(payload).eq("id", input.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("products").insert({
-          sku: input.sku,
-          name: input.name,
-          price: input.price,
-          unit: input.unit,
-          description: input.description,
-          active: input.active,
-        });
+        const { error } = await supabase.from("products").insert(payload);
         if (error) throw error;
       }
     },
