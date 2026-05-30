@@ -15,6 +15,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 
 export const Route = createFileRoute("/app/suppliers")({
   component: SuppliersPage,
