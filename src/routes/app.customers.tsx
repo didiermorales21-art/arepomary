@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Pencil } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +43,11 @@ function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [sellerId, setSellerId] = useState<string>("");
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editPhone, setEditPhone] = useState("");
+  const [editSellerId, setEditSellerId] = useState<string>("");
+  const [editNeighborhoodId, setEditNeighborhoodId] = useState<string>("");
+  const [editStatus, setEditStatus] = useState<string>("active");
 
   const { data: neighborhoods } = useQuery({
     queryKey: ["neighborhoods"],
@@ -130,6 +135,53 @@ function CustomersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async (input: {
+      id: string;
+      name: string;
+      document_id: string;
+      phone: string;
+      address: string;
+      neighborhood_id: string | null;
+      notes: string;
+      seller_id: string;
+      status: string;
+    }) => {
+      if (input.phone && !isValidPhone(input.phone)) {
+        throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
+      }
+      if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      const { error } = await supabase
+        .from("customers")
+        .update({
+          name: input.name,
+          document_id: input.document_id || null,
+          phone: input.phone,
+          address: input.address,
+          neighborhood_id: input.neighborhood_id,
+          notes: input.notes,
+          seller_id: input.seller_id,
+          status: input.status as any,
+        } as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Cliente actualizado");
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function openEdit(c: any) {
+    setEditing(c);
+    setEditPhone(c.phone || "");
+    setEditSellerId(c.seller_id || "");
+    setEditNeighborhoodId(c.neighborhood_id || "");
+    setEditStatus(c.status || "active");
+  }
 
   return (
     <>
@@ -261,18 +313,19 @@ function CustomersPage() {
                 <TableHead>Zona</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Estado</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -288,6 +341,11 @@ function CustomersPage() {
                     <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
                     </TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -295,6 +353,113 @@ function CustomersPage() {
           </Table>
         </div>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Editar cliente</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                updateMutation.mutate({
+                  id: editing.id,
+                  name: String(fd.get("name") || ""),
+                  document_id: String(fd.get("document_id") || ""),
+                  phone: editPhone,
+                  address: String(fd.get("address") || ""),
+                  neighborhood_id: editNeighborhoodId || null,
+                  notes: String(fd.get("notes") || ""),
+                  seller_id: isAdmin ? editSellerId : (editing.seller_id || user?.id || COMPANY_ID),
+                  status: editStatus,
+                });
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="e_document_id">Documento</Label>
+                  <Input id="e_document_id" name="document_id" defaultValue={editing.document_id || ""} inputMode="numeric" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_phone">Teléfono</Label>
+                  <Input
+                    id="e_phone"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))}
+                    {...PHONE_INPUT_PROPS}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_name">Nombre</Label>
+                <Input id="e_name" name="name" defaultValue={editing.name} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_address">Dirección</Label>
+                <Input id="e_address" name="address" defaultValue={editing.address || ""} />
+              </div>
+              <div className="space-y-2">
+                <Label>Barrio</Label>
+                <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un barrio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(neighborhoods ?? []).map((n: any) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.name}
+                        {n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Vendedor asignado</Label>
+                  <Select value={editSellerId} onValueChange={setEditSellerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona un vendedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(sellers ?? []).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.full_name || "—"}
+                          {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label>Estado</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">active</SelectItem>
+                    <SelectItem value="inactive">inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="e_notes">Notas</Label>
+                <Textarea id="e_notes" name="notes" defaultValue={editing.notes || ""} rows={3} />
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={updateMutation.isPending} className="bg-gradient-primary">
+                  {updateMutation.isPending ? "Guardando…" : "Guardar cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
