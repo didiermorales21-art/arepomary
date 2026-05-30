@@ -72,6 +72,7 @@ function LogisticsPage() {
       const { data, error } = await supabase
         .from("orders")
         .select("id, order_number, customers(name)")
+        .not("status", "in", "(delivered,cancelled)")
         .order("order_number", { ascending: false })
         .limit(100);
       if (error) throw error;
