@@ -124,54 +124,12 @@ function ProductsPage() {
           <DialogHeader>
             <DialogTitle className="font-display">{editing ? "Editar producto" : "Nuevo producto"}</DialogTitle>
           </DialogHeader>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault();
-              const fd = new FormData(e.currentTarget);
-              saveMutation.mutate({
-                id: editing?.id,
-                sku: String(fd.get("sku") || ""),
-                name: String(fd.get("name") || ""),
-                price: Number(fd.get("price") || 0),
-                unit: String(fd.get("unit") || "unidad"),
-                description: String(fd.get("description") || ""),
-                active: fd.get("active") === "on",
-              });
-            }}
-          >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input id="sku" name="sku" required defaultValue={editing?.sku ?? ""} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit">Unidad</Label>
-                <Input id="unit" name="unit" required defaultValue={editing?.unit ?? "paquete"} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input id="name" name="name" required defaultValue={editing?.name ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="price">Precio (COP)</Label>
-              <Input id="price" name="price" type="number" min="0" step="100" required defaultValue={editing?.price ?? ""} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Descripción</Label>
-              <Input id="description" name="description" defaultValue={editing?.description ?? ""} />
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="active" defaultChecked={editing ? editing.active : true} />
-              Activo (visible para clientes)
-            </label>
-            <DialogFooter>
-              <Button type="submit" disabled={saveMutation.isPending} className="bg-gradient-primary">
-                {saveMutation.isPending ? "Guardando…" : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <ProductFormFields
+            key={editing?.id ?? "new"}
+            editing={editing}
+            isPending={saveMutation.isPending}
+            onSubmit={(v) => saveMutation.mutate({ id: editing?.id, ...v })}
+          />
         </DialogContent>
       </Dialog>
 
