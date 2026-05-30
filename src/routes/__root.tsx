@@ -65,9 +65,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Plataforma ERP de Arepomary: CRM, ventas, producción, inventario y logística en una sola aplicación.",
       },
-      { property: "og:title", content: "Arepomary ERP" },
-      { property: "og:description", content: "Operación digital de Arepomary." },
+      { property: "og:title", content: "Arepomary ERP — Gestión integral de operación" },
+      { property: "og:description", content: "Arepomar's Core Operations Platform is a comprehensive ERP web application for food production and distribution." },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "Arepomary ERP — Gestión integral de operación" },
+      { name: "description", content: "Arepomar's Core Operations Platform is a comprehensive ERP web application for food production and distribution." },
+      { name: "twitter:description", content: "Arepomar's Core Operations Platform is a comprehensive ERP web application for food production and distribution." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c1ad7576-d3fa-4972-83c7-5b300daa5df5/id-preview-30bae358--e5e5fd83-c50f-4db7-a9cc-dd8468775dc9.lovable.app-1780158375158.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c1ad7576-d3fa-4972-83c7-5b300daa5df5/id-preview-30bae358--e5e5fd83-c50f-4db7-a9cc-dd8468775dc9.lovable.app-1780158375158.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
