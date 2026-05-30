@@ -27,6 +27,8 @@ interface LineDraft {
   quantity: number;
 }
 
+const COMPANY_SELLER_ID = "00000000-0000-0000-0000-000000000001";
+
 function GuestOrderPage() {
   const navigate = useNavigate();
   const [document_id, setDocumentId] = useState("");
@@ -35,6 +37,8 @@ function GuestOrderPage() {
   const [address, setAddress] = useState("");
   const [neighborhoodId, setNeighborhoodId] = useState("");
   const [notes, setNotes] = useState("");
+  const [sellerMode, setSellerMode] = useState<"alone" | "referred">("alone");
+  const [sellerId, setSellerId] = useState<string>("");
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -51,22 +55,38 @@ function GuestOrderPage() {
       (await supabase.from("neighborhoods").select("id, name, zones(name)").eq("active", true).order("name")).data ?? [],
   });
 
+  const { data: sellers } = useQuery({
+    queryKey: ["public-sellers"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("list_public_sellers" as any);
+      return (data ?? []) as { id: string; full_name: string }[];
+    },
+  });
+
   // Auto-lookup when document_id reaches a reasonable length
   useEffect(() => {
     if (document_id.trim().length < 5) return;
     const t = setTimeout(async () => {
       setLookingUp(true);
-      const { data } = await supabase
-        .from("customers")
-        .select("name, phone, address, neighborhood_id")
-        .eq("document_id", document_id.trim())
-        .maybeSingle();
+      const { data } = await supabase.rpc("lookup_customer_by_document" as any, {
+        _document_id: document_id.trim(),
+      });
       setLookingUp(false);
-      if (data) {
-        setName(data.name ?? "");
-        setPhone(data.phone ?? "");
-        setAddress(data.address ?? "");
-        if (data.neighborhood_id) setNeighborhoodId(data.neighborhood_id);
+      const row = Array.isArray(data) ? data[0] : null;
+      if (row) {
+        setName(row.name ?? "");
+        setPhone(row.phone ?? "");
+        setAddress(row.address ?? "");
+        if (row.neighborhood_id) setNeighborhoodId(row.neighborhood_id);
+        if (row.seller_id) {
+          if (row.seller_id === COMPANY_SELLER_ID) {
+            setSellerMode("alone");
+            setSellerId("");
+          } else {
+            setSellerMode("referred");
+            setSellerId(row.seller_id);
+          }
+        }
         toast.success("Cliente reconocido. Datos autocompletados.");
       }
     }, 500);
