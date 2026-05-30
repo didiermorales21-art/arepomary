@@ -81,13 +81,15 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-gold text-gold-foreground font-display font-bold shadow-elegant">
-            A
-          </div>
+          <img
+            src={new URL("../assets/logo-amarillo.png", import.meta.url).href}
+            alt="Arepomary"
+            className="h-9 w-9 object-contain"
+          />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="font-display text-base font-semibold text-sidebar-foreground">Arepomary</span>
-              <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">ERP Suite</span>
+              <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">Sabor que abraza</span>
             </div>
           )}
         </div>
