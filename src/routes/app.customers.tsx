@@ -136,6 +136,53 @@ function CustomersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (input: {
+      id: string;
+      name: string;
+      document_id: string;
+      phone: string;
+      address: string;
+      neighborhood_id: string | null;
+      notes: string;
+      seller_id: string;
+      status: string;
+    }) => {
+      if (input.phone && !isValidPhone(input.phone)) {
+        throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
+      }
+      if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      const { error } = await supabase
+        .from("customers")
+        .update({
+          name: input.name,
+          document_id: input.document_id || null,
+          phone: input.phone,
+          address: input.address,
+          neighborhood_id: input.neighborhood_id,
+          notes: input.notes,
+          seller_id: input.seller_id,
+          status: input.status as any,
+        } as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success("Cliente actualizado");
+      setEditing(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  function openEdit(c: any) {
+    setEditing(c);
+    setEditPhone(c.phone || "");
+    setEditSellerId(c.seller_id || "");
+    setEditNeighborhoodId(c.neighborhood_id || "");
+    setEditStatus(c.status || "active");
+  }
+
   return (
     <>
       <PageHeader
