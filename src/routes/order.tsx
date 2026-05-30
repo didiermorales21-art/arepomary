@@ -127,6 +127,10 @@ function GuestOrderPage() {
       toast.error("Agrega al menos un producto.");
       return;
     }
+    if (sellerMode === "referred" && !sellerId) {
+      toast.error("Selecciona el vendedor que te refirió o marca 'Llegué por mi cuenta'.");
+      return;
+    }
     setSubmitting(true);
     const { data, error } = await supabase.rpc("create_guest_order", {
       _name: name,
@@ -140,6 +144,7 @@ function GuestOrderPage() {
         quantity: l.quantity,
         unit_price: l.unit_price,
       })),
+      _seller_id: sellerMode === "referred" ? sellerId : COMPANY_SELLER_ID,
     } as any);
     setSubmitting(false);
     if (error) {
