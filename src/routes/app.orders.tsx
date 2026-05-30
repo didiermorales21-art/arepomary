@@ -81,7 +81,7 @@ function OrdersPage() {
 
   const { data: customers } = useQuery({
     queryKey: ["customers-min"],
-    queryFn: async () => (await supabase.from("customers").select("id, name").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("customers").select("id, name, document_id, phone").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
