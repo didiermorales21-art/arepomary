@@ -64,6 +64,7 @@ function OrdersPage() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([]);
 
