@@ -19,6 +19,7 @@ import { Plus, Truck, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
