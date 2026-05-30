@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import logoAmarillo from "@/assets/logo-amarillo.png";
 import {
   LayoutDashboard,
   Users,

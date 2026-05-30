@@ -5,6 +5,7 @@ import { ArrowRight, ShoppingBag, Truck, Wheat, LogIn, UserPlus } from "lucide-r
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import logoVerde from "@/assets/logo-verde.png";
 
 export const Route = createFileRoute("/")({
   component: Landing,
