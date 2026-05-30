@@ -166,19 +166,45 @@ function OrdersPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>Cliente</Label>
-                    <Select value={customerId} onValueChange={setCustomerId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(customers ?? []).map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Cliente (busca por nombre o documento)</Label>
+                    <Input
+                      placeholder="Nombre o documento…"
+                      value={customerSearch}
+                      onChange={(e) => { setCustomerSearch(e.target.value); setCustomerId(""); }}
+                    />
+                    {customerSearch && !customerId && (
+                      <div className="max-h-40 overflow-auto rounded-md border bg-popover text-sm shadow-md">
+                        {(customers ?? [])
+                          .filter((c: any) => {
+                            const q = customerSearch.toLowerCase();
+                            return (
+                              c.name?.toLowerCase().includes(q) ||
+                              (c.document_id ?? "").toLowerCase().includes(q) ||
+                              (c.phone ?? "").includes(q)
+                            );
+                          })
+                          .slice(0, 8)
+                          .map((c: any) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              className="block w-full px-3 py-2 text-left hover:bg-accent"
+                              onClick={() => { setCustomerId(c.id); setCustomerSearch(`${c.name}${c.document_id ? " · " + c.document_id : ""}`); }}
+                            >
+                              <div className="font-medium">{c.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {c.document_id ?? "Sin doc."} {c.phone ? `· ${c.phone}` : ""}
+                              </div>
+                            </button>
+                          ))}
+                        {(customers ?? []).filter((c: any) => {
+                          const q = customerSearch.toLowerCase();
+                          return c.name?.toLowerCase().includes(q) || (c.document_id ?? "").toLowerCase().includes(q);
+                        }).length === 0 && (
+                          <div className="px-3 py-2 text-muted-foreground">Sin coincidencias.</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Fecha de entrega</Label>
