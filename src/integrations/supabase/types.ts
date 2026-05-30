@@ -245,7 +245,7 @@ export type Database = {
           phone: string | null
           portal_user_id: string | null
           purchase_frequency: string | null
-          seller_id: string | null
+          seller_id: string
           status: Database["public"]["Enums"]["customer_status"]
           updated_at: string
           zone_id: string | null
@@ -261,7 +261,7 @@ export type Database = {
           phone?: string | null
           portal_user_id?: string | null
           purchase_frequency?: string | null
-          seller_id?: string | null
+          seller_id?: string
           status?: Database["public"]["Enums"]["customer_status"]
           updated_at?: string
           zone_id?: string | null
@@ -277,7 +277,7 @@ export type Database = {
           phone?: string | null
           portal_user_id?: string | null
           purchase_frequency?: string | null
-          seller_id?: string | null
+          seller_id?: string
           status?: Database["public"]["Enums"]["customer_status"]
           updated_at?: string
           zone_id?: string | null

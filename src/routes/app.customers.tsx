@@ -33,12 +33,16 @@ export const Route = createFileRoute("/app/customers")({
   component: CustomersPage,
 });
 
+const COMPANY_ID = "00000000-0000-0000-0000-000000000001";
+
 function CustomersPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const isAdmin = hasRole("admin");
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
+  const [sellerId, setSellerId] = useState<string>("");
 
   const { data: neighborhoods } = useQuery({
     queryKey: ["neighborhoods"],
@@ -46,17 +50,36 @@ function CustomersPage() {
       (await supabase.from("neighborhoods").select("id, name, zones(name)").eq("active", true).order("name")).data ?? [],
   });
 
+  const { data: sellers } = useQuery({
+    queryKey: ["sellers-options"],
+    queryFn: async () => {
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "seller");
+      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
+      if (ids.length === 0) return [];
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      return (profiles ?? []).sort((a, b) =>
+        a.id === COMPANY_ID ? -1 : b.id === COMPANY_ID ? 1 : (a.full_name || "").localeCompare(b.full_name || ""),
+      );
+    },
+  });
+
   const { data: customers, isLoading } = useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, address, status, document_id, neighborhood_id, created_at, neighborhoods(name, zones(name))")
+        .select("id, name, phone, address, status, document_id, neighborhood_id, seller_id, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  const sellerNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (sellers ?? []).forEach((s) => m.set(s.id, s.full_name || "—"));
+    return m;
+  }, [sellers]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -78,10 +101,14 @@ function CustomersPage() {
       address: string;
       neighborhood_id: string | null;
       notes: string;
+      seller_id: string;
     }) => {
       if (!user) throw new Error("Sin sesión");
       if (!isValidPhone(input.phone)) {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
+      }
+      if (!input.seller_id) {
+        throw new Error("Debes seleccionar un vendedor");
       }
       const { error } = await supabase.from("customers").insert({
         name: input.name,
@@ -90,7 +117,7 @@ function CustomersPage() {
         address: input.address,
         neighborhood_id: input.neighborhood_id,
         notes: input.notes,
-        seller_id: user.id,
+        seller_id: input.seller_id,
       } as any);
       if (error) throw error;
     },
@@ -99,6 +126,7 @@ function CustomersPage() {
       toast.success("Cliente creado");
       setOpen(false);
       setPhone("");
+      setSellerId("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -132,6 +160,7 @@ function CustomersPage() {
                     address: String(fd.get("address") || ""),
                     neighborhood_id: (fd.get("neighborhood_id") as string) || null,
                     notes: String(fd.get("notes") || ""),
+                    seller_id: isAdmin ? sellerId : (user?.id ?? COMPANY_ID),
                   });
                 }}
               >
@@ -178,6 +207,24 @@ function CustomersPage() {
                     La zona se asigna automáticamente según el barrio.
                   </p>
                 </div>
+                {isAdmin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="seller_id">Vendedor asignado</Label>
+                    <Select value={sellerId} onValueChange={setSellerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(sellers ?? []).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.full_name || "—"}
+                            {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas</Label>
                   <Textarea id="notes" name="notes" rows={3} />
@@ -212,19 +259,20 @@ function CustomersPage() {
                 <TableHead>Teléfono</TableHead>
                 <TableHead>Barrio</TableHead>
                 <TableHead>Zona</TableHead>
+                <TableHead>Vendedor</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -236,6 +284,7 @@ function CustomersPage() {
                     <TableCell>{c.phone || "—"}</TableCell>
                     <TableCell>{c.neighborhoods?.name || "—"}</TableCell>
                     <TableCell>{c.neighborhoods?.zones?.name || "—"}</TableCell>
+                    <TableCell className="text-xs">{sellerNameMap.get(c.seller_id) || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
                     </TableCell>
