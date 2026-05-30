@@ -56,7 +56,7 @@ function ProductionPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("production_batches" as any)
-        .select("id, batch_number, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, created_at, products(name, sku)")
+        .select("id, batch_number, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, created_at, products(id, name, sku, image_url)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
