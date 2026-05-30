@@ -124,6 +124,7 @@ function OrdersPage() {
       setOpen(false);
       setLines([]);
       setCustomerId("");
+      setCustomerSearch("");
       setDeliveryDate("");
     },
     onError: (e: Error) => toast.error(e.message),
