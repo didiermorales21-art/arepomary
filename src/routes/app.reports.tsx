@@ -80,6 +80,33 @@ function ReportsPage() {
       },
     },
     {
+      key: "sales-by-seller",
+      title: "Ventas por vendedor",
+      desc: "Cantidad de ventas, total facturado y saldo pendiente por vendedor.",
+      icon: UserSquare2,
+      load: async () => {
+        const { data: sales } = await supabase.from("sales").select("seller_id, total, paid, balance");
+        const sellerIds = Array.from(new Set((sales ?? []).map((s) => s.seller_id)));
+        const { data: profiles } = sellerIds.length
+          ? await supabase.from("profiles").select("id, full_name").in("id", sellerIds)
+          : { data: [] };
+        const nameMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name || "(sin nombre)"]));
+        const agg = new Map<string, { count: number; total: number; paid: number; balance: number }>();
+        (sales ?? []).forEach((s) => {
+          const cur = agg.get(s.seller_id) ?? { count: 0, total: 0, paid: 0, balance: 0 };
+          cur.count += 1;
+          cur.total += Number(s.total);
+          cur.paid += Number(s.paid);
+          cur.balance += Number(s.balance ?? 0);
+          agg.set(s.seller_id, cur);
+        });
+        const rows = Array.from(agg.entries())
+          .map(([sid, v]) => [nameMap.get(sid) ?? "—", v.count, v.total, v.paid, v.balance])
+          .sort((a, b) => Number(b[2]) - Number(a[2]));
+        return { cols: ["Vendedor", "N° ventas", "Total", "Pagado", "Saldo"], rows };
+      },
+    },
+    {
       key: "payables",
       title: "Pagos a proveedores",
       desc: "Cuentas por pagar pendientes.",
