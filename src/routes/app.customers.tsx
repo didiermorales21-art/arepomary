@@ -207,6 +207,24 @@ function CustomersPage() {
                     La zona se asigna automáticamente según el barrio.
                   </p>
                 </div>
+                {isAdmin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="seller_id">Vendedor asignado</Label>
+                    <Select value={sellerId} onValueChange={setSellerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(sellers ?? []).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.full_name || "—"}
+                            {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notas</Label>
                   <Textarea id="notes" name="notes" rows={3} />
