@@ -21,6 +21,7 @@ import { Route as AppWarehousesRouteImport } from './routes/app.warehouses'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppSuppliersRouteImport } from './routes/app.suppliers'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppSellersRouteImport } from './routes/app.sellers'
 import { Route as AppSalesRouteImport } from './routes/app.sales'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppReceivablesRouteImport } from './routes/app.receivables'
@@ -95,6 +96,11 @@ const AppSuppliersRoute = AppSuppliersRouteImport.update({
 const AppSettingsRoute = AppSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSellersRoute = AppSellersRouteImport.update({
+  id: '/sellers',
+  path: '/sellers',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSalesRoute = AppSalesRouteImport.update({
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/sellers': typeof AppSellersRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/sellers': typeof AppSellersRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
+  '/app/sellers': typeof AppSellersRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
+    | '/app/sellers'
     | '/app/settings'
     | '/app/suppliers'
     | '/app/users'
@@ -311,6 +321,7 @@ export interface FileRouteTypes {
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
+    | '/app/sellers'
     | '/app/settings'
     | '/app/suppliers'
     | '/app/users'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
+    | '/app/sellers'
     | '/app/settings'
     | '/app/suppliers'
     | '/app/users'
@@ -443,6 +455,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/app/settings'
       preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/sellers': {
+      id: '/app/sellers'
+      path: '/sellers'
+      fullPath: '/app/sellers'
+      preLoaderRoute: typeof AppSellersRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/sales': {
@@ -568,6 +587,7 @@ interface AppRouteChildren {
   AppReceivablesRoute: typeof AppReceivablesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRoute
+  AppSellersRoute: typeof AppSellersRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppUsersRoute: typeof AppUsersRoute
@@ -591,6 +611,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppReceivablesRoute: AppReceivablesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRoute,
+  AppSellersRoute: AppSellersRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSuppliersRoute: AppSuppliersRoute,
   AppUsersRoute: AppUsersRoute,
