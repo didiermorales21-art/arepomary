@@ -38,7 +38,7 @@ function Landing() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2">
             <img
-              src={new URL("../assets/logo-verde.png", import.meta.url).href}
+              src={logoVerde}
               alt="Arepomary"
               className="h-10 w-10 object-contain"
             />

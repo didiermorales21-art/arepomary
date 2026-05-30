@@ -82,7 +82,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-2 px-2 py-3">
           <img
-            src={new URL("../assets/logo-amarillo.png", import.meta.url).href}
+            src={logoAmarillo}
             alt="Arepomary"
             className="h-9 w-9 object-contain"
           />
