@@ -56,13 +56,16 @@ function LogisticsPage() {
   const canManage = hasAnyRole(["admin", "operations"]);
   const [openShip, setOpenShip] = useState(false);
   const [openDriver, setOpenDriver] = useState(false);
+  const [filterDate, setFilterDate] = useState<string>(todayISO());
+  const [filterDriver, setFilterDriver] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const { data: shipments } = useQuery({
     queryKey: ["shipments"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("shipments")
-        .select("*, drivers(name, license_plate), zones(name), orders(order_number, customers(name))")
+        .select("*, drivers(name, license_plate, phone), zones(name), orders(id, order_number, status, total, customers(name, phone, address))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
