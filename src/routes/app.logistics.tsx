@@ -177,7 +177,7 @@ function LogisticsPage() {
   }, [filteredOrders]);
 
   const unassignedOrders = useMemo<OrderRow[]>(() => {
-    return (orders ?? []).filter((o) => !o.delivery_date || !o.driver_id);
+    return (orders ?? []).filter((o) => o.status === "confirmed" && (!o.delivery_date || !o.driver_id));
   }, [orders]);
 
   const buildExportRows = (list: OrderRow[]) =>
