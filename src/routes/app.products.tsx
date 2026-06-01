@@ -62,11 +62,13 @@ function ProductsPage() {
         sku: input.sku,
         name: input.name,
         price: input.price,
+        wholesale_price: input.wholesale_price,
         unit: input.unit,
         description: input.description,
         active: input.active,
         image_url: input.image_url,
       };
+
       if (input.id) {
         const { error } = await supabase.from("products").update(payload).eq("id", input.id);
         if (error) throw error;
