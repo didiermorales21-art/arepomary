@@ -149,26 +149,30 @@ function CustomersPage() {
       notes: string;
       seller_id: string;
       status: string;
+      customer_type?: string;
     }) => {
       if (input.phone && !isValidPhone(input.phone)) {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       }
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      const update: any = {
+        name: input.name,
+        document_id: input.document_id || null,
+        phone: input.phone,
+        address: input.address,
+        neighborhood_id: input.neighborhood_id,
+        notes: input.notes,
+        seller_id: input.seller_id,
+        status: input.status,
+      };
+      if (input.customer_type) update.customer_type = input.customer_type;
       const { error } = await supabase
         .from("customers")
-        .update({
-          name: input.name,
-          document_id: input.document_id || null,
-          phone: input.phone,
-          address: input.address,
-          neighborhood_id: input.neighborhood_id,
-          notes: input.notes,
-          seller_id: input.seller_id,
-          status: input.status as any,
-        } as any)
+        .update(update)
         .eq("id", input.id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Cliente actualizado");
