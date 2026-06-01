@@ -288,6 +288,49 @@ function GuestOrderPage() {
                 )}
               </div>
               <div className="space-y-2">
+                <Label>Fecha de entrega</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !deliveryDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {deliveryDate
+                        ? format(new Date(deliveryDate + "T00:00:00"), "PPP")
+                        : "Selecciona una fecha disponible"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={deliveryDate ? new Date(deliveryDate + "T00:00:00") : undefined}
+                      onSelect={(d) => {
+                        if (!d) return setDeliveryDate("");
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        setDeliveryDate(`${yyyy}-${mm}-${dd}`);
+                      }}
+                      disabled={(d) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return d < today || !isDayAllowed(d);
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  Días disponibles: {allowedDaysLabel}
+                </p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="notes">Notas (opcional)</Label>
                 <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
