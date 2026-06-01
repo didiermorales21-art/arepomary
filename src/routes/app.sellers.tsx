@@ -74,11 +74,12 @@ function SellersPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (input: { id?: string; full_name: string; phone: string }) => {
+    mutationFn: async (input: { id?: string; first_name: string; last_name: string; phone: string }) => {
       if (input.id) {
+        const full = `${input.first_name} ${input.last_name}`.trim();
         const { error } = await supabase
           .from("profiles")
-          .update({ full_name: input.full_name, phone: input.phone || null })
+          .update({ first_name: input.first_name, last_name: input.last_name, full_name: full, phone: input.phone || null })
           .eq("id", input.id);
         if (error) throw error;
       } else {
@@ -94,6 +95,7 @@ function SellersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const { data: candidates } = useQuery({
     queryKey: ["seller-candidates"],
