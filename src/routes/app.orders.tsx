@@ -121,6 +121,17 @@ function OrdersPage() {
     return isWholesale && w > 0 ? w : Number(p?.price ?? 0);
   };
 
+  useEffect(() => {
+    setLines((prev) =>
+      prev.map((l) => {
+        const p = (products ?? []).find((pp: any) => pp.id === l.product_id);
+        return p ? { ...l, unit_price: priceFor(p) } : l;
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWholesale]);
+
+
 
   const total = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
 
