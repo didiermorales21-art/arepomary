@@ -131,9 +131,11 @@ function LogisticsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Filter orders by date/driver, then group into shipments (driver + date)
+  // Only confirmed (and already-delivered) orders can be part of a shipment.
+  // Drafts and cancelled orders never appear here.
   const filteredOrders = useMemo<OrderRow[]>(() => {
     return (orders ?? []).filter((o) => {
+      if (o.status !== "confirmed" && o.status !== "delivered") return false;
       if (!o.delivery_date) return false;
       if (filterDate && o.delivery_date !== filterDate) return false;
       if (filterDriver !== "all") {
