@@ -28,18 +28,21 @@ export const Route = createFileRoute("/app/logistics")({
 const ORDER_STATUS_LABEL: Record<string, string> = {
   draft: "Borrador",
   confirmed: "Confirmado",
-  in_production: "En producción",
-  ready: "Listo",
   delivered: "Entregado",
   cancelled: "Cancelado",
 };
 const ORDER_STATUS_TONE: Record<string, string> = {
   draft: "bg-muted text-foreground",
   confirmed: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
-  in_production: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-  ready: "bg-purple-500/20 text-purple-700 dark:text-purple-300",
   delivered: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
   cancelled: "bg-destructive/20 text-destructive",
+};
+
+// Only these statuses can be moved from inside a shipment row
+const SHIPMENT_STATUS_OPTIONS: Record<string, string> = {
+  confirmed: "Confirmado",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -128,9 +131,11 @@ function LogisticsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Filter orders by date/driver, then group into shipments (driver + date)
+  // Only confirmed (and already-delivered) orders can be part of a shipment.
+  // Drafts and cancelled orders never appear here.
   const filteredOrders = useMemo<OrderRow[]>(() => {
     return (orders ?? []).filter((o) => {
+      if (o.status !== "confirmed" && o.status !== "delivered") return false;
       if (!o.delivery_date) return false;
       if (filterDate && o.delivery_date !== filterDate) return false;
       if (filterDriver !== "all") {
@@ -172,7 +177,7 @@ function LogisticsPage() {
   }, [filteredOrders]);
 
   const unassignedOrders = useMemo<OrderRow[]>(() => {
-    return (orders ?? []).filter((o) => !o.delivery_date || !o.driver_id);
+    return (orders ?? []).filter((o) => o.status === "confirmed" && (!o.delivery_date || !o.driver_id));
   }, [orders]);
 
   const buildExportRows = (list: OrderRow[]) =>
@@ -413,7 +418,7 @@ function LogisticsPage() {
                                   >
                                     <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                      {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+                                      {Object.entries(SHIPMENT_STATUS_OPTIONS).map(([k, v]) => (
                                         <SelectItem key={k} value={k}>{v}</SelectItem>
                                       ))}
                                     </SelectContent>

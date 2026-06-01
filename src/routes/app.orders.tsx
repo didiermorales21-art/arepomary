@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -38,8 +39,6 @@ function fmt(n: number) {
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   draft: "secondary",
   confirmed: "outline",
-  in_production: "outline",
-  ready: "default",
   delivered: "default",
   cancelled: "destructive",
 };
@@ -47,11 +46,17 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 const statusLabel: Record<string, string> = {
   draft: "Borrador",
   confirmed: "Confirmado",
-  in_production: "En producción",
-  ready: "Listo",
   delivered: "Entregado",
   cancelled: "Cancelado",
 };
+
+const STATUS_TABS: Array<{ value: string; label: string }> = [
+  { value: "all", label: "Todos" },
+  { value: "draft", label: "Borradores" },
+  { value: "confirmed", label: "Confirmados" },
+  { value: "delivered", label: "Entregados" },
+  { value: "cancelled", label: "Cancelados" },
+];
 
 interface LineDraft {
   product_id: string;
@@ -67,6 +72,8 @@ function OrdersPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([]);
+  const [statusTab, setStatusTab] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["orders"],
@@ -320,88 +327,133 @@ function OrdersPage() {
           </Dialog>
         }
       />
-      <div className="p-6">
-        <div className="rounded-xl border bg-card shadow-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="w-[180px]">Avanzar</TableHead>
-                <TableHead className="w-[170px]">Venta</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                    Cargando…
-                  </TableCell>
-                </TableRow>
-              ) : (orders ?? []).length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
-                    Aún no hay pedidos.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                (orders ?? []).map((o: any) => {
-                  const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
-                  const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
-                  return (
-                  <TableRow key={o.id}>
-                    <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
-                    <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
-                    <TableCell>
-                      {o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-CO") : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">{fmt(Number(o.total))}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusVariant[o.status] ?? "outline"}>{statusLabel[o.status] ?? o.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={o.status}
-                        onValueChange={(v) => updateStatus.mutate({ id: o.id, status: v })}
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(statusLabel).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {existingSale ? (
-                        <Badge variant="default" className="font-mono text-xs">
-                          Venta #{existingSale.sale_number}
-                        </Badge>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={!canConvert || convertMutation.isPending}
-                          onClick={() => convertMutation.mutate(o.id)}
-                        >
-                          Convertir en venta
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                  );
-                })
+      <div className="space-y-4 p-6">
+        <Tabs value={statusTab} onValueChange={setStatusTab}>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <TabsList>
+              {STATUS_TABS.map((t) => {
+                const count =
+                  t.value === "all"
+                    ? (orders ?? []).length
+                    : (orders ?? []).filter((o: any) => o.status === t.value).length;
+                return (
+                  <TabsTrigger key={t.value} value={t.value}>
+                    {t.label} ({count})
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs text-muted-foreground">Entrega</Label>
+              <Input
+                type="date"
+                className="h-9 w-40"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              />
+              {filterDate && (
+                <Button type="button" variant="outline" size="sm" onClick={() => setFilterDate("")}>
+                  Limpiar
+                </Button>
               )}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
+          </div>
+
+          {STATUS_TABS.map((t) => {
+            const filtered = (orders ?? []).filter((o: any) => {
+              if (t.value !== "all" && o.status !== t.value) return false;
+              if (filterDate && o.delivery_date !== filterDate) return false;
+              return true;
+            });
+            return (
+              <TabsContent key={t.value} value={t.value} className="mt-4">
+                <div className="rounded-xl border bg-card shadow-card">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Entrega</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="w-[180px]">Avanzar</TableHead>
+                        <TableHead className="w-[170px]">Venta</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                            Cargando…
+                          </TableCell>
+                        </TableRow>
+                      ) : filtered.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                            Sin pedidos para los filtros seleccionados.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filtered.map((o: any) => {
+                          const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
+                          const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
+                          return (
+                            <TableRow key={o.id}>
+                              <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
+                              <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
+                              <TableCell>
+                                {o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-CO") : "—"}
+                              </TableCell>
+                              <TableCell className="text-right">{fmt(Number(o.total))}</TableCell>
+                              <TableCell>
+                                <Badge variant={statusVariant[o.status] ?? "outline"}>
+                                  {statusLabel[o.status] ?? o.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={statusLabel[o.status] ? o.status : "confirmed"}
+                                  onValueChange={(v) => updateStatus.mutate({ id: o.id, status: v })}
+                                >
+                                  <SelectTrigger className="h-8">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(statusLabel).map(([k, v]) => (
+                                      <SelectItem key={k} value={k}>
+                                        {v}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
+                                {existingSale ? (
+                                  <Badge variant="default" className="font-mono text-xs">
+                                    Venta #{existingSale.sale_number}
+                                  </Badge>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!canConvert || convertMutation.isPending}
+                                    onClick={() => convertMutation.mutate(o.id)}
+                                  >
+                                    Convertir en venta
+                                  </Button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
       </div>
     </>
   );
