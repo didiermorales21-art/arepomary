@@ -39,6 +39,17 @@ const STATUS_TONE: Record<string, string> = {
   cancelled: "bg-destructive/20 text-destructive",
 };
 
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  draft: "Borrador",
+  confirmed: "Confirmado",
+  in_production: "En producción",
+  ready: "Listo",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
 function LogisticsPage() {
   const qc = useQueryClient();
   const { hasAnyRole } = useAuth();
