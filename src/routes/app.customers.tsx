@@ -102,7 +102,8 @@ function CustomersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (input: {
-      name: string;
+      first_name: string;
+      last_name: string;
       document_id: string;
       phone: string;
       address: string;
@@ -117,8 +118,12 @@ function CustomersPage() {
       if (!input.seller_id) {
         throw new Error("Debes seleccionar un vendedor");
       }
+      if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      const composed = `${input.first_name} ${input.last_name}`.trim();
       const { error } = await supabase.from("customers").insert({
-        name: input.name,
+        name: composed,
+        first_name: input.first_name,
+        last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
         address: input.address,
@@ -141,7 +146,8 @@ function CustomersPage() {
   const updateMutation = useMutation({
     mutationFn: async (input: {
       id: string;
-      name: string;
+      first_name: string;
+      last_name: string;
       document_id: string;
       phone: string;
       address: string;
@@ -155,8 +161,12 @@ function CustomersPage() {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       }
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      const composed = `${input.first_name} ${input.last_name}`.trim();
       const update: any = {
-        name: input.name,
+        name: composed,
+        first_name: input.first_name,
+        last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
         address: input.address,
@@ -180,6 +190,7 @@ function CustomersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   function openEdit(c: any) {
     setEditing(c);
