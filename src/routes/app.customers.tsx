@@ -187,7 +187,9 @@ function CustomersPage() {
     setEditSellerId(c.seller_id || "");
     setEditNeighborhoodId(c.neighborhood_id || "");
     setEditStatus(c.status || "active");
+    setEditCustomerType(c.customer_type || "standard");
   }
+
 
   return (
     <>
