@@ -452,7 +452,25 @@ function CustomersPage() {
                   </Select>
                 </div>
               )}
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Tipo de cliente</Label>
+                  <Select value={editCustomerType} onValueChange={setEditCustomerType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Estándar (precio normal)</SelectItem>
+                      <SelectItem value="wholesale">Comercial (precio al por mayor)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Solo el administrador puede modificar el tipo de cliente.
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
+
                 <Label>Estado</Label>
                 <Select value={editStatus} onValueChange={setEditStatus}>
                   <SelectTrigger>
