@@ -87,6 +87,7 @@ function SellersPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
       toast.success("Vendedor actualizado");
       setOpen(false);
       setEditing(null);
