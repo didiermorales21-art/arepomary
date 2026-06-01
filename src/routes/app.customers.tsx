@@ -48,6 +48,8 @@ function CustomersPage() {
   const [editSellerId, setEditSellerId] = useState<string>("");
   const [editNeighborhoodId, setEditNeighborhoodId] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("active");
+  const [editCustomerType, setEditCustomerType] = useState<string>("standard");
+
 
   const { data: neighborhoods } = useQuery({
     queryKey: ["neighborhoods"],
@@ -73,7 +75,7 @@ function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, address, status, document_id, neighborhood_id, seller_id, created_at, neighborhoods(name, zones(name))")
+        .select("id, name, phone, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -147,26 +149,30 @@ function CustomersPage() {
       notes: string;
       seller_id: string;
       status: string;
+      customer_type?: string;
     }) => {
       if (input.phone && !isValidPhone(input.phone)) {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       }
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      const update: any = {
+        name: input.name,
+        document_id: input.document_id || null,
+        phone: input.phone,
+        address: input.address,
+        neighborhood_id: input.neighborhood_id,
+        notes: input.notes,
+        seller_id: input.seller_id,
+        status: input.status,
+      };
+      if (input.customer_type) update.customer_type = input.customer_type;
       const { error } = await supabase
         .from("customers")
-        .update({
-          name: input.name,
-          document_id: input.document_id || null,
-          phone: input.phone,
-          address: input.address,
-          neighborhood_id: input.neighborhood_id,
-          notes: input.notes,
-          seller_id: input.seller_id,
-          status: input.status as any,
-        } as any)
+        .update(update)
         .eq("id", input.id);
       if (error) throw error;
     },
+
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Cliente actualizado");
@@ -181,7 +187,9 @@ function CustomersPage() {
     setEditSellerId(c.seller_id || "");
     setEditNeighborhoodId(c.neighborhood_id || "");
     setEditStatus(c.status || "active");
+    setEditCustomerType(c.customer_type || "standard");
   }
+
 
   return (
     <>
@@ -312,6 +320,7 @@ function CustomersPage() {
                 <TableHead>Barrio</TableHead>
                 <TableHead>Zona</TableHead>
                 <TableHead>Vendedor</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
@@ -319,13 +328,13 @@ function CustomersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -339,6 +348,11 @@ function CustomersPage() {
                     <TableCell>{c.neighborhoods?.zones?.name || "—"}</TableCell>
                     <TableCell className="text-xs">{sellerNameMap.get(c.seller_id) || "—"}</TableCell>
                     <TableCell>
+                      <Badge variant={c.customer_type === "wholesale" ? "default" : "outline"}>
+                        {c.customer_type === "wholesale" ? "Comercial" : "Estándar"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
                     </TableCell>
                     <TableCell>
@@ -349,6 +363,7 @@ function CustomersPage() {
                   </TableRow>
                 ))
               )}
+
             </TableBody>
           </Table>
         </div>
@@ -375,7 +390,9 @@ function CustomersPage() {
                   notes: String(fd.get("notes") || ""),
                   seller_id: isAdmin ? editSellerId : (editing.seller_id || user?.id || COMPANY_ID),
                   status: editStatus,
+                  customer_type: isAdmin ? editCustomerType : undefined,
                 });
+
               }}
             >
               <div className="grid grid-cols-2 gap-3">
@@ -435,7 +452,25 @@ function CustomersPage() {
                   </Select>
                 </div>
               )}
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Tipo de cliente</Label>
+                  <Select value={editCustomerType} onValueChange={setEditCustomerType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Estándar (precio normal)</SelectItem>
+                      <SelectItem value="wholesale">Comercial (precio al por mayor)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Solo el administrador puede modificar el tipo de cliente.
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
+
                 <Label>Estado</Label>
                 <Select value={editStatus} onValueChange={setEditStatus}>
                   <SelectTrigger>

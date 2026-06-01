@@ -23,7 +23,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -69,15 +69,33 @@ function SalesPage() {
 
   const { data: customers } = useQuery({
     queryKey: ["customers-min"],
-    queryFn: async () => (await supabase.from("customers").select("id, name").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("customers").select("id, name, customer_type").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, price, sku").eq("active", true).order("name")).data ?? [],
+      (await supabase.from("products").select("id, name, price, wholesale_price, sku").eq("active", true).order("name")).data ?? [],
   });
 
+  const selectedCustomer = (customers ?? []).find((c: any) => c.id === customerId);
+  const isWholesale = (selectedCustomer as any)?.customer_type === "wholesale";
+  const priceFor = (p: any) => {
+    const w = Number(p?.wholesale_price ?? 0);
+    return isWholesale && w > 0 ? w : Number(p?.price ?? 0);
+  };
+
+  useEffect(() => {
+    setLines((prev) =>
+      prev.map((l) => {
+        const p = (products ?? []).find((pp: any) => pp.id === l.product_id);
+        return p ? { ...l, unit_price: priceFor(p) } : l;
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWholesale]);
+
   const total = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
+
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -114,7 +132,7 @@ function SalesPage() {
   function addLine() {
     if (!products || products.length === 0) return;
     const p = products[0];
-    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: Number(p.price) }]);
+    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: priceFor(p) }]);
   }
   function updateLine(i: number, patch: Partial<LineDraft>) {
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
@@ -174,7 +192,7 @@ function SalesPage() {
                             value={l.product_id}
                             onValueChange={(v) => {
                               const p = (products ?? []).find((pp) => pp.id === v);
-                              updateLine(i, { product_id: v, unit_price: p ? Number(p.price) : l.unit_price });
+                              updateLine(i, { product_id: v, unit_price: p ? priceFor(p) : l.unit_price });
                             }}
                           >
                             <SelectTrigger>

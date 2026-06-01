@@ -32,11 +32,13 @@ interface ProductForm {
   sku: string;
   name: string;
   price: number;
+  wholesale_price: number;
   unit: string;
   description: string;
   active: boolean;
   image_url: string | null;
 }
+
 
 function ProductsPage() {
   const qc = useQueryClient();
@@ -60,11 +62,13 @@ function ProductsPage() {
         sku: input.sku,
         name: input.name,
         price: input.price,
+        wholesale_price: input.wholesale_price,
         unit: input.unit,
         description: input.description,
         active: input.active,
         image_url: input.image_url,
       };
+
       if (input.id) {
         const { error } = await supabase.from("products").update(payload).eq("id", input.id);
         if (error) throw error;
@@ -142,24 +146,27 @@ function ProductsPage() {
                 <TableHead>SKU</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Unidad</TableHead>
-                <TableHead className="text-right">Precio</TableHead>
+                <TableHead className="text-right">Precio estándar</TableHead>
+                <TableHead className="text-right">Precio mayorista</TableHead>
                 <TableHead>Estado</TableHead>
                 {isAdmin && <TableHead className="w-[120px] text-right">Acciones</TableHead>}
+
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : (products ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     No hay productos.
                   </TableCell>
                 </TableRow>
+
               ) : (
                 (products ?? []).map((p) => (
                   <TableRow key={p.id}>
@@ -174,6 +181,8 @@ function ProductsPage() {
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.unit}</TableCell>
                     <TableCell className="text-right font-medium">{fmt(Number(p.price))}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{fmt(Number((p as any).wholesale_price ?? 0))}</TableCell>
+
                     <TableCell>
                       <Badge variant={p.active ? "default" : "secondary"}>{p.active ? "activo" : "inactivo"}</Badge>
                     </TableCell>
@@ -210,6 +219,8 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
   const [sku, setSku] = useState(editing?.sku ?? "");
   const [name, setName] = useState(editing?.name ?? "");
   const [price, setPrice] = useState<string>(editing?.price ? String(editing.price) : "");
+  const [wholesalePrice, setWholesalePrice] = useState<string>(editing?.wholesale_price ? String(editing.wholesale_price) : "");
+
   const [unit, setUnit] = useState(editing?.unit ?? "paquete");
   const [description, setDescription] = useState(editing?.description ?? "");
   const [active, setActive] = useState<boolean>(editing ? !!editing.active : true);
@@ -238,7 +249,7 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ sku, name, price: Number(price || 0), unit, description, active, image_url: imageUrl });
+        onSubmit({ sku, name, price: Number(price || 0), wholesale_price: Number(wholesalePrice || 0), unit, description, active, image_url: imageUrl });
       }}
     >
       <div className="flex items-center gap-4">
@@ -271,10 +282,18 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
         <Label htmlFor="name">Nombre</Label>
         <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="price">Precio (COP)</Label>
-        <Input id="price" type="number" min="0" step="100" required value={price} onChange={(e) => setPrice(e.target.value)} />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="price">Precio estándar (COP)</Label>
+          <Input id="price" type="number" min="0" step="100" required value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wholesale_price">Precio al por mayor (COP)</Label>
+          <Input id="wholesale_price" type="number" min="0" step="100" value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)} />
+          <p className="text-xs text-muted-foreground">Aplica a clientes comerciales.</p>
+        </div>
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="description">Descripción</Label>
         <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} />

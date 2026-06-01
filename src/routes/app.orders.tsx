@@ -24,7 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -105,13 +105,33 @@ function OrdersPage() {
 
   const { data: customers } = useQuery({
     queryKey: ["customers-min"],
-    queryFn: async () => (await supabase.from("customers").select("id, name, document_id, phone").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("customers").select("id, name, document_id, phone, customer_type").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, price").eq("active", true).order("name")).data ?? [],
+      (await supabase.from("products").select("id, name, price, wholesale_price").eq("active", true).order("name")).data ?? [],
   });
+
+  const selectedCustomer = (customers ?? []).find((c: any) => c.id === customerId);
+  const isWholesale = (selectedCustomer as any)?.customer_type === "wholesale";
+  const priceFor = (p: any) => {
+    const w = Number(p?.wholesale_price ?? 0);
+    return isWholesale && w > 0 ? w : Number(p?.price ?? 0);
+  };
+
+  useEffect(() => {
+    setLines((prev) =>
+      prev.map((l) => {
+        const p = (products ?? []).find((pp: any) => pp.id === l.product_id);
+        return p ? { ...l, unit_price: priceFor(p) } : l;
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isWholesale]);
+
+
 
   const total = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
 
@@ -168,7 +188,7 @@ function OrdersPage() {
   function addLine() {
     if (!products || products.length === 0) return;
     const p = products[0];
-    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: Number(p.price) }]);
+    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: priceFor(p) }]);
   }
 
   return (
@@ -256,7 +276,7 @@ function OrdersPage() {
                               setLines((prev) =>
                                 prev.map((x, idx) =>
                                   idx === i
-                                    ? { ...x, product_id: v, unit_price: p ? Number(p.price) : x.unit_price }
+                                    ? { ...x, product_id: v, unit_price: p ? priceFor(p) : x.unit_price }
                                     : x,
                                 ),
                               );
