@@ -194,6 +194,7 @@ export type Database = {
           company_name: string
           created_at: string
           currency: string
+          delivery_days: number[]
           email: string | null
           id: string
           legal_name: string | null
@@ -208,6 +209,7 @@ export type Database = {
           company_name?: string
           created_at?: string
           currency?: string
+          delivery_days?: number[]
           email?: string | null
           id?: string
           legal_name?: string | null
@@ -222,6 +224,7 @@ export type Database = {
           company_name?: string
           created_at?: string
           currency?: string
+          delivery_days?: number[]
           email?: string | null
           id?: string
           legal_name?: string | null

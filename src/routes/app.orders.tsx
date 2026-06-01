@@ -23,7 +23,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Plus, Trash2, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -108,6 +112,24 @@ function OrdersPage() {
     queryFn: async () =>
       (await supabase.from("customers").select("id, name, document_id, phone, customer_type").order("name")).data ?? [],
   });
+  const { data: deliveryDays } = useQuery({
+    queryKey: ["delivery-days"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_settings")
+        .select("delivery_days" as any)
+        .limit(1)
+        .maybeSingle();
+      const dd = (data as any)?.delivery_days;
+      return Array.isArray(dd) && dd.length > 0 ? (dd as number[]) : [1, 2, 3, 4, 5, 6];
+    },
+  });
+  const isDayAllowed = (d: Date) => (deliveryDays ?? [1, 2, 3, 4, 5, 6]).includes(d.getDay());
+  const allowedDaysLabel = (() => {
+    const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const dd = deliveryDays ?? [];
+    return dd.length === 7 ? "Todos los días" : dd.slice().sort().map((i) => names[i]).join(", ");
+  })();
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
@@ -252,7 +274,46 @@ function OrdersPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Fecha de entrega</Label>
-                    <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !deliveryDate && "text-muted-foreground",
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {deliveryDate
+                            ? format(new Date(deliveryDate + "T00:00:00"), "PPP")
+                            : "Selecciona fecha"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={deliveryDate ? new Date(deliveryDate + "T00:00:00") : undefined}
+                          onSelect={(d) => {
+                            if (!d) return setDeliveryDate("");
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, "0");
+                            const dd = String(d.getDate()).padStart(2, "0");
+                            setDeliveryDate(`${yyyy}-${mm}-${dd}`);
+                          }}
+                          disabled={(d) => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return d < today || !isDayAllowed(d);
+                          }}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      Días disponibles: {allowedDaysLabel}
+                    </p>
                   </div>
                 </div>
                 <div>
