@@ -145,6 +145,97 @@ function LogisticsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const updateOrderStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("orders").update({ status } as never).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["shipments"] });
+      toast.success("Estado del pedido actualizado");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  type ShipmentRow = NonNullable<typeof shipments>[number];
+  const filteredShipments = useMemo<ShipmentRow[]>(() => {
+    return (shipments ?? []).filter((s) => {
+      if (filterDate && s.scheduled_for !== filterDate) return false;
+      if (filterDriver !== "all" && s.driver_id !== filterDriver) return false;
+      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+      return true;
+    });
+  }, [shipments, filterDate, filterDriver, filterStatus]);
+
+  const handleDownloadPdf = () => {
+    if (filteredShipments.length === 0) {
+      toast.error("No hay pedidos para descargar");
+      return;
+    }
+    const rows = filteredShipments.map((s) => {
+      const o = s.orders as { order_number?: number; customers?: { name?: string; phone?: string; address?: string } } | null;
+      const d = s.drivers as { name?: string; license_plate?: string } | null;
+      const z = s.zones as { name?: string } | null;
+      return [
+        `#${s.shipment_number}`,
+        o?.order_number ? `#${o.order_number}` : "—",
+        o?.customers?.name ?? "—",
+        o?.customers?.phone ?? "—",
+        s.address ?? o?.customers?.address ?? "—",
+        z?.name ?? "—",
+        d?.name ?? "—",
+        STATUS_LABEL[s.status] ?? s.status,
+      ];
+    });
+    const driverLabel =
+      filterDriver === "all"
+        ? "Todos"
+        : (drivers ?? []).find((d) => d.id === filterDriver)?.name ?? "—";
+    exportToPdf({
+      title: "Pedidos por entregar",
+      columns: ["Envío", "Pedido", "Cliente", "Teléfono", "Dirección", "Zona", "Conductor", "Estado"],
+      rows,
+      meta: {
+        Fecha: filterDate || "Todas",
+        Conductor: driverLabel,
+        Estado: filterStatus === "all" ? "Todos" : STATUS_LABEL[filterStatus] ?? filterStatus,
+        Total: String(filteredShipments.length),
+      },
+      filename: `entregas_${filterDate || "todas"}.pdf`,
+    });
+  };
+
+  const handleDownloadExcel = () => {
+    if (filteredShipments.length === 0) {
+      toast.error("No hay pedidos para descargar");
+      return;
+    }
+    const rows = filteredShipments.map((s) => {
+      const o = s.orders as { order_number?: number; customers?: { name?: string; phone?: string; address?: string } } | null;
+      const d = s.drivers as { name?: string; license_plate?: string } | null;
+      const z = s.zones as { name?: string } | null;
+      return [
+        s.shipment_number,
+        o?.order_number ?? "",
+        o?.customers?.name ?? "",
+        o?.customers?.phone ?? "",
+        s.address ?? o?.customers?.address ?? "",
+        z?.name ?? "",
+        d?.name ?? "",
+        STATUS_LABEL[s.status] ?? s.status,
+      ];
+    });
+    exportToExcel({
+      filename: `entregas_${filterDate || "todas"}`,
+      sheets: [{
+        name: "Entregas",
+        columns: ["Envío", "Pedido", "Cliente", "Teléfono", "Dirección", "Zona", "Conductor", "Estado"],
+        rows,
+      }],
+    });
+  };
+
+
   return (
     <>
       <PageHeader
