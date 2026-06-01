@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -38,8 +39,6 @@ function fmt(n: number) {
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   draft: "secondary",
   confirmed: "outline",
-  in_production: "outline",
-  ready: "default",
   delivered: "default",
   cancelled: "destructive",
 };
@@ -47,11 +46,17 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 const statusLabel: Record<string, string> = {
   draft: "Borrador",
   confirmed: "Confirmado",
-  in_production: "En producción",
-  ready: "Listo",
   delivered: "Entregado",
   cancelled: "Cancelado",
 };
+
+const STATUS_TABS: Array<{ value: string; label: string }> = [
+  { value: "all", label: "Todos" },
+  { value: "draft", label: "Borradores" },
+  { value: "confirmed", label: "Confirmados" },
+  { value: "delivered", label: "Entregados" },
+  { value: "cancelled", label: "Cancelados" },
+];
 
 interface LineDraft {
   product_id: string;
