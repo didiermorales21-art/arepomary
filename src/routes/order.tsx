@@ -151,6 +151,10 @@ function GuestOrderPage() {
       toast.error("Selecciona el vendedor que te refirió o marca 'Llegué por mi cuenta'.");
       return;
     }
+    if (!deliveryDate) {
+      toast.error("Selecciona la fecha de entrega.");
+      return;
+    }
     setSubmitting(true);
     const { data, error } = await supabase.rpc("create_guest_order", {
       _name: name,
