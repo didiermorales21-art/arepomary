@@ -165,6 +165,7 @@ function GuestOrderPage() {
         unit_price: l.unit_price,
       })),
       _seller_id: sellerMode === "referred" ? sellerId : COMPANY_SELLER_ID,
+      _delivery_date: deliveryDate || null,
     } as any);
     setSubmitting(false);
     if (error) {
