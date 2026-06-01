@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, KeyRound, Mail } from "lucide-react";
+import { listAuthUsers, updateUserPassword, updateUserEmail } from "@/lib/admin-users.functions";
 import {
   Dialog,
   DialogContent,
@@ -42,17 +44,23 @@ function UsersPage() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
 
+  const fetchAuthUsers = useServerFn(listAuthUsers);
+
   const { data, isLoading } = useQuery({
     queryKey: ["users-with-roles"],
     queryFn: async () => {
-      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }, authUsers] = await Promise.all([
         supabase.from("profiles").select("id, full_name, phone, created_at").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("id, user_id, role"),
+        fetchAuthUsers().catch(() => [] as Array<{ id: string; email: string | null; last_sign_in_at: string | null }>),
       ]);
       if (pErr) throw pErr;
       if (rErr) throw rErr;
+      const authMap = new Map((authUsers ?? []).map((u) => [u.id, u]));
       return (profiles ?? []).map((p) => ({
         ...p,
+        email: authMap.get(p.id)?.email ?? null,
+        last_sign_in_at: authMap.get(p.id)?.last_sign_in_at ?? null,
         roles: (roles ?? []).filter((r) => r.user_id === p.id),
       }));
     },
@@ -113,8 +121,13 @@ function UsersPage() {
                     <div>
                       <h3 className="font-display text-base font-semibold">{u.full_name || "(sin nombre)"}</h3>
                       <p className="text-xs text-muted-foreground">
-                        ID: {u.id.slice(0, 8)}… {u.phone && `· ${u.phone}`}
+                        {u.email ?? `ID: ${u.id.slice(0, 8)}…`} {u.phone && `· ${u.phone}`}
                       </p>
+                      {u.last_sign_in_at && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Último acceso: {new Date(u.last_sign_in_at).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -139,6 +152,7 @@ function UsersPage() {
                       existing={u.roles.map((r) => r.role as AppRole)}
                       onAdd={(role) => addRole.mutate({ user_id: u.id, role })}
                     />
+                    <CredentialsDialog userId={u.id} currentEmail={u.email} />
                   </div>
                 </CardContent>
               </Card>
@@ -255,3 +269,92 @@ function AddRoleDialog({
     </Dialog>
   );
 }
+
+function CredentialsDialog({ userId, currentEmail }: { userId: string; currentEmail: string | null }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(currentEmail ?? "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+
+  const updateEmail = useServerFn(updateUserEmail);
+  const updatePassword = useServerFn(updateUserPassword);
+
+  const emailMut = useMutation({
+    mutationFn: () => updateEmail({ data: { user_id: userId, new_email: email } }),
+    onSuccess: () => {
+      toast.success("Correo actualizado");
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const passwordMut = useMutation({
+    mutationFn: () => updatePassword({ data: { user_id: userId, new_password: password } }),
+    onSuccess: () => {
+      toast.success("Contraseña actualizada");
+      setPassword("");
+      setConfirm("");
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" title="Credenciales">
+          <KeyRound className="mr-1 h-3 w-3" /> Credenciales
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-display">Credenciales de acceso</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1"><Mail className="h-3 w-3" /> Correo electrónico</Label>
+            <div className="flex gap-2">
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+              <Button
+                onClick={() => emailMut.mutate()}
+                disabled={!email || email === currentEmail || emailMut.isPending}
+                variant="outline"
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2 border-t pt-4">
+            <Label className="flex items-center gap-1"><KeyRound className="h-3 w-3" /> Nueva contraseña</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 8 caracteres"
+            />
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Confirmar contraseña"
+            />
+            <p className="text-xs text-muted-foreground">
+              Por seguridad las contraseñas se almacenan cifradas y no pueden visualizarse. Solo es posible asignar una nueva.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => passwordMut.mutate()}
+            disabled={password.length < 8 || password !== confirm || passwordMut.isPending}
+            className="bg-gradient-primary"
+          >
+            Actualizar contraseña
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
