@@ -192,7 +192,7 @@ function SalesPage() {
                             value={l.product_id}
                             onValueChange={(v) => {
                               const p = (products ?? []).find((pp) => pp.id === v);
-                              updateLine(i, { product_id: v, unit_price: p ? Number(p.price) : l.unit_price });
+                              updateLine(i, { product_id: v, unit_price: p ? priceFor(p) : l.unit_price });
                             }}
                           >
                             <SelectTrigger>
