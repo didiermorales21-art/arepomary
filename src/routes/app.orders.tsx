@@ -105,13 +105,22 @@ function OrdersPage() {
 
   const { data: customers } = useQuery({
     queryKey: ["customers-min"],
-    queryFn: async () => (await supabase.from("customers").select("id, name, document_id, phone").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("customers").select("id, name, document_id, phone, customer_type").order("name")).data ?? [],
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
-      (await supabase.from("products").select("id, name, price").eq("active", true).order("name")).data ?? [],
+      (await supabase.from("products").select("id, name, price, wholesale_price").eq("active", true).order("name")).data ?? [],
   });
+
+  const selectedCustomer = (customers ?? []).find((c: any) => c.id === customerId);
+  const isWholesale = (selectedCustomer as any)?.customer_type === "wholesale";
+  const priceFor = (p: any) => {
+    const w = Number(p?.wholesale_price ?? 0);
+    return isWholesale && w > 0 ? w : Number(p?.price ?? 0);
+  };
+
 
   const total = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
 
