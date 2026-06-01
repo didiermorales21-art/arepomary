@@ -72,6 +72,8 @@ function OrdersPage() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([]);
+  const [statusTab, setStatusTab] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("");
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["orders"],
