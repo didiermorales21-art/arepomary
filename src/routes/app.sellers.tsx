@@ -157,6 +157,11 @@ function SellersPage() {
         description="Equipo comercial. Todo cliente debe estar asociado a un vendedor."
       />
       <div className="p-6">
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setAddOpen(true)} className="bg-gradient-primary">
+            <UserPlus className="mr-2 h-4 w-4" /> Agregar vendedor
+          </Button>
+        </div>
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : (
@@ -216,10 +221,51 @@ function SellersPage() {
 
         <p className="mt-6 text-xs text-muted-foreground">
           <Plus className="mr-1 inline h-3 w-3" />
-          Para crear un vendedor con acceso al sistema, crea el usuario en{" "}
-          <a className="underline" href="/app/users">Usuarios</a> y asígnale el rol <Badge variant="secondary" className="text-[10px]">seller</Badge>.
+          Para crear un usuario nuevo con acceso al sistema, primero créalo en{" "}
+          <a className="underline" href="/app/users">Usuarios</a>; luego podrás asignarle el rol <Badge variant="secondary" className="text-[10px]">vendedor</Badge> desde aquí o desde Usuarios.
         </p>
       </div>
+
+      <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setPickUserId(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Agregar vendedor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Usuario</Label>
+              <Select value={pickUserId} onValueChange={setPickUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un usuario" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(candidates ?? []).length === 0 ? (
+                    <div className="px-2 py-3 text-xs text-muted-foreground">
+                      No hay usuarios disponibles. Crea uno desde Usuarios.
+                    </div>
+                  ) : (
+                    (candidates ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name || "(sin nombre)"} {c.phone ? `· ${c.phone}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!pickUserId || assignSeller.isPending}
+              onClick={() => assignSeller.mutate(pickUserId)}
+              className="bg-gradient-primary"
+            >
+              Asignar como vendedor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
         <DialogContent>
