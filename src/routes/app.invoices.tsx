@@ -413,19 +413,22 @@ function InvoicesPage() {
   );
 }
 
-function PaymentForm({ pendiente, isPending, onSubmit }: { pendiente: number; isPending: boolean; onSubmit: (v: { amount: number; method: string; reference: string }) => void }) {
+function PaymentForm({ pendiente, isPending, onSubmit }: { pendiente: number; isPending: boolean; onSubmit: (v: { amount: number; method: string; reference: string; gift_password?: string }) => void }) {
   const [amount, setAmount] = useState<string>(pendiente > 0 ? String(pendiente) : "");
   const [method, setMethod] = useState("cash");
   const [reference, setReference] = useState("");
+  const [giftPassword, setGiftPassword] = useState("");
   const num = Number(amount);
   const valid = Number.isFinite(num) && num > 0 && num <= pendiente + 0.001;
   const excede = Number.isFinite(num) && num > pendiente + 0.001;
   const esTotal = valid && Math.abs(num - pendiente) < 0.01;
   const esParcial = valid && !esTotal;
+  const isGift = method === "gift";
+  const giftOk = !isGift || giftPassword.length > 0;
   return (
     <form
       className="space-y-4"
-      onSubmit={(e) => { e.preventDefault(); if (!valid) return; onSubmit({ amount: num, method, reference }); }}
+      onSubmit={(e) => { e.preventDefault(); if (!valid || !giftOk) return; onSubmit({ amount: num, method, reference, gift_password: isGift ? giftPassword : undefined }); }}
     >
       <div className="rounded-md border bg-muted/40 p-3 text-sm">
         Saldo pendiente: <span className="font-semibold">${pendiente.toLocaleString()}</span>
@@ -443,16 +446,22 @@ function PaymentForm({ pendiente, isPending, onSubmit }: { pendiente: number; is
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="cash">Efectivo</SelectItem>
-            <SelectItem value="transfer">Transferencia</SelectItem>
-            <SelectItem value="card">Tarjeta</SelectItem>
-            <SelectItem value="check">Cheque</SelectItem>
-            <SelectItem value="credit">Crédito</SelectItem>
+            <SelectItem value="nequi">Nequi</SelectItem>
+            <SelectItem value="daviplata">Daviplata</SelectItem>
+            <SelectItem value="gift">Regalo</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      {isGift && (
+        <div className="space-y-2">
+          <Label htmlFor="gift_password">Clave de autorización (Regalo)</Label>
+          <Input id="gift_password" type="password" required value={giftPassword} onChange={(e) => setGiftPassword(e.target.value)} placeholder="Ingresa la clave" />
+          <p className="text-xs text-muted-foreground">Los pagos tipo Regalo requieren clave del administrador.</p>
+        </div>
+      )}
       <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" value={reference} onChange={(e) => setReference(e.target.value)} /></div>
       <DialogFooter>
-        <Button type="submit" disabled={isPending || !valid} className="bg-gradient-primary">
+        <Button type="submit" disabled={isPending || !valid || !giftOk} className="bg-gradient-primary">
           {isPending ? "Guardando…" : "Registrar"}
         </Button>
       </DialogFooter>
