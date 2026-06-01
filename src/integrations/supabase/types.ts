@@ -668,6 +668,7 @@ export type Database = {
           created_at: string
           customer_id: string
           delivery_date: string | null
+          driver_id: string | null
           id: string
           notes: string | null
           order_number: number
@@ -682,6 +683,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           delivery_date?: string | null
+          driver_id?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -696,6 +698,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           delivery_date?: string | null
+          driver_id?: string | null
           id?: string
           notes?: string | null
           order_number?: number
@@ -712,6 +715,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
         ]
