@@ -146,9 +146,11 @@ function ProductsPage() {
                 <TableHead>SKU</TableHead>
                 <TableHead>Nombre</TableHead>
                 <TableHead>Unidad</TableHead>
-                <TableHead className="text-right">Precio</TableHead>
+                <TableHead className="text-right">Precio estándar</TableHead>
+                <TableHead className="text-right">Precio mayorista</TableHead>
                 <TableHead>Estado</TableHead>
                 {isAdmin && <TableHead className="w-[120px] text-right">Acciones</TableHead>}
+
               </TableRow>
             </TableHeader>
             <TableBody>
