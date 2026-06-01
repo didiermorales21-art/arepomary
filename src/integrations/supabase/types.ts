@@ -1243,19 +1243,35 @@ export type Database = {
           sale_number: number
         }[]
       }
-      create_guest_order: {
-        Args: {
-          _address: string
-          _document_id: string
-          _items: Json
-          _name: string
-          _neighborhood_id: string
-          _notes: string
-          _phone: string
-          _seller_id?: string
-        }
-        Returns: string
-      }
+      create_guest_order:
+        | {
+            Args: {
+              _address: string
+              _document_id: string
+              _items: Json
+              _name: string
+              _neighborhood_id: string
+              _notes: string
+              _phone: string
+              _seller_id?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _address: string
+              _delivery_date?: string
+              _document_id: string
+              _items: Json
+              _name: string
+              _neighborhood_id: string
+              _notes: string
+              _phone: string
+              _seller_id?: string
+            }
+            Returns: string
+          }
+      get_delivery_days: { Args: never; Returns: number[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

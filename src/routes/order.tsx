@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Minus, Plus, ShoppingBag } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ArrowLeft, CalendarIcon, Minus, Plus, ShoppingBag } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { sanitizePhoneInput, isValidPhone, PHONE_INPUT_PROPS } from "@/lib/phone";
 
@@ -42,6 +46,22 @@ function GuestOrderPage() {
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [deliveryDate, setDeliveryDate] = useState<string>("");
+
+  const { data: deliveryDays } = useQuery({
+    queryKey: ["public-delivery-days"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_delivery_days" as any);
+      return Array.isArray(data) && data.length > 0 ? (data as number[]) : [1, 2, 3, 4, 5, 6];
+    },
+  });
+  const isDayAllowed = (d: Date) => (deliveryDays ?? [1, 2, 3, 4, 5, 6]).includes(d.getDay());
+  const allowedDaysLabel = (() => {
+    const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const dd = deliveryDays ?? [];
+    return dd.length === 7 ? "Todos los días" : dd.slice().sort().map((i) => names[i]).join(", ");
+  })();
 
   const { data: products } = useQuery({
     queryKey: ["public-products-all"],
@@ -131,6 +151,10 @@ function GuestOrderPage() {
       toast.error("Selecciona el vendedor que te refirió o marca 'Llegué por mi cuenta'.");
       return;
     }
+    if (!deliveryDate) {
+      toast.error("Selecciona la fecha de entrega.");
+      return;
+    }
     setSubmitting(true);
     const { data, error } = await supabase.rpc("create_guest_order", {
       _name: name,
@@ -145,6 +169,7 @@ function GuestOrderPage() {
         unit_price: l.unit_price,
       })),
       _seller_id: sellerMode === "referred" ? sellerId : COMPANY_SELLER_ID,
+      _delivery_date: deliveryDate || null,
     } as any);
     setSubmitting(false);
     if (error) {
@@ -261,6 +286,49 @@ function GuestOrderPage() {
                     </SelectContent>
                   </Select>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label>Fecha de entrega</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !deliveryDate && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {deliveryDate
+                        ? format(new Date(deliveryDate + "T00:00:00"), "PPP")
+                        : "Selecciona una fecha disponible"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={deliveryDate ? new Date(deliveryDate + "T00:00:00") : undefined}
+                      onSelect={(d) => {
+                        if (!d) return setDeliveryDate("");
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        setDeliveryDate(`${yyyy}-${mm}-${dd}`);
+                      }}
+                      disabled={(d) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return d < today || !isDayAllowed(d);
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  Días disponibles: {allowedDaysLabel}
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Notas (opcional)</Label>
