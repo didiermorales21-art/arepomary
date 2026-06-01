@@ -132,7 +132,7 @@ function SalesPage() {
   function addLine() {
     if (!products || products.length === 0) return;
     const p = products[0];
-    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: Number(p.price) }]);
+    setLines((prev) => [...prev, { product_id: p.id, quantity: 1, unit_price: priceFor(p) }]);
   }
   function updateLine(i: number, patch: Partial<LineDraft>) {
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
