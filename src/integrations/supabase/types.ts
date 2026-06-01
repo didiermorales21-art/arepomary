@@ -1236,6 +1236,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_invoice_payment: {
+        Args: {
+          _amount: number
+          _gift_password?: string
+          _invoice_id: string
+          _method: string
+          _reference?: string
+        }
+        Returns: string
+      }
       convert_order_to_sale: {
         Args: { _order_id: string }
         Returns: {
@@ -1331,7 +1341,14 @@ export type Database = {
         | "ready"
         | "delivered"
         | "cancelled"
-      payment_method: "cash" | "transfer" | "card" | "other"
+      payment_method:
+        | "cash"
+        | "transfer"
+        | "card"
+        | "other"
+        | "nequi"
+        | "daviplata"
+        | "gift"
       sale_status: "draft" | "confirmed" | "paid" | "cancelled"
       shipment_status: "pending" | "in_transit" | "delivered" | "cancelled"
     }
@@ -1483,7 +1500,15 @@ export const Constants = {
         "delivered",
         "cancelled",
       ],
-      payment_method: ["cash", "transfer", "card", "other"],
+      payment_method: [
+        "cash",
+        "transfer",
+        "card",
+        "other",
+        "nequi",
+        "daviplata",
+        "gift",
+      ],
       sale_status: ["draft", "confirmed", "paid", "cancelled"],
       shipment_status: ["pending", "in_transit", "delivered", "cancelled"],
     },

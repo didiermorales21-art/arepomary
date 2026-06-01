@@ -3,7 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { DollarSign, ShoppingCart, Users, AlertCircle } from "lucide-react";
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -22,20 +26,39 @@ function fmt(n: number) {
   return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n);
 }
 
+function defaultRange() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { from: iso(start), to: iso(end) };
+}
+
 function Dashboard() {
+  const initial = useMemo(defaultRange, []);
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
+
   const { data: kpis } = useQuery({
-    queryKey: ["kpis"],
+    queryKey: ["kpis", from, to],
     queryFn: async () => {
-      const [{ count: customers }, { count: products }, salesRes, receivablesRes] = await Promise.all([
+      const fromIso = new Date(from + "T00:00:00").toISOString();
+      const toIso = new Date(to + "T23:59:59").toISOString();
+      const [{ count: customers }, salesRes, invoicesRes] = await Promise.all([
         supabase.from("customers").select("*", { head: true, count: "exact" }),
-        supabase.from("products").select("*", { head: true, count: "exact" }),
-        supabase.from("sales").select("total, balance, created_at"),
-        supabase.from("sales").select("balance"),
+        supabase
+          .from("sales")
+          .select("total, created_at")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso),
+        supabase
+          .from("invoices")
+          .select("balance, status")
+          .not("status", "in", "(paid,cancelled)"),
       ]);
       const sales = salesRes.data ?? [];
       const totalSales = sales.reduce((s, r) => s + Number(r.total || 0), 0);
-      const receivables = (receivablesRes.data ?? []).reduce((s, r) => s + Number(r.balance || 0), 0);
-      // group by month
+      const receivables = (invoicesRes.data ?? []).reduce((s, r) => s + Number(r.balance || 0), 0);
       const byMonth: Record<string, number> = {};
       sales.forEach((r) => {
         const d = new Date(r.created_at);
@@ -44,11 +67,9 @@ function Dashboard() {
       });
       const chart = Object.entries(byMonth)
         .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-6)
         .map(([k, v]) => ({ month: k, total: v }));
       return {
         customers: customers ?? 0,
-        products: products ?? 0,
         totalSales,
         receivables,
         salesCount: sales.length,
@@ -64,6 +85,12 @@ function Dashboard() {
     { label: "Cartera pendiente", value: fmt(kpis?.receivables ?? 0), icon: AlertCircle, accent: "bg-gradient-gold" },
   ];
 
+  const resetRange = () => {
+    const r = defaultRange();
+    setFrom(r.from);
+    setTo(r.to);
+  };
+
   return (
     <>
       <PageHeader
@@ -71,6 +98,23 @@ function Dashboard() {
         description="Indicadores clave de la operación en tiempo real."
       />
       <div className="space-y-6 p-6">
+        <Card className="shadow-card">
+          <CardContent className="flex flex-wrap items-end gap-3 p-4">
+            <div className="space-y-1">
+              <Label htmlFor="from" className="text-xs">Desde</Label>
+              <Input id="from" type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="w-44" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="to" className="text-xs">Hasta</Label>
+              <Input id="to" type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="w-44" />
+            </div>
+            <Button variant="outline" size="sm" onClick={resetRange}>Últimos 30 días</Button>
+            <p className="ml-auto text-xs text-muted-foreground">
+              Las ventas se filtran por el rango seleccionado. La cartera muestra el saldo pendiente actual.
+            </p>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((c) => (
             <Card key={c.label} className="overflow-hidden shadow-card">
@@ -96,7 +140,7 @@ function Dashboard() {
           <CardContent className="h-72">
             {(kpis?.chart.length ?? 0) === 0 ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No hay ventas registradas todavía.
+                No hay ventas en el rango seleccionado.
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">

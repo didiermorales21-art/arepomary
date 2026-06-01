@@ -34,6 +34,7 @@ import { Route as AppLogisticsRouteImport } from './routes/app.logistics'
 import { Route as AppInvoicesRouteImport } from './routes/app.invoices'
 import { Route as AppInventoryRouteImport } from './routes/app.inventory'
 import { Route as AppCustomersRouteImport } from './routes/app.customers'
+import { Route as AppCashboxRouteImport } from './routes/app.cashbox'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
@@ -163,6 +164,11 @@ const AppCustomersRoute = AppCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCashboxRoute = AppCashboxRouteImport.update({
+  id: '/cashbox',
+  path: '/cashbox',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/cashbox': typeof AppCashboxRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/cashbox': typeof AppCashboxRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
+  '/app/cashbox': typeof AppCashboxRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -280,6 +289,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/app/analytics'
     | '/app/audit'
+    | '/app/cashbox'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -309,6 +319,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/app/analytics'
     | '/app/audit'
+    | '/app/cashbox'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/app/analytics'
     | '/app/audit'
+    | '/app/cashbox'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -548,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/cashbox': {
+      id: '/app/cashbox'
+      path: '/cashbox'
+      fullPath: '/app/cashbox'
+      preLoaderRoute: typeof AppCashboxRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/audit': {
       id: '/app/audit'
       path: '/audit'
@@ -575,6 +594,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppCashboxRoute: typeof AppCashboxRoute
   AppCustomersRoute: typeof AppCustomersRoute
   AppInventoryRoute: typeof AppInventoryRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -599,6 +619,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppAuditRoute: AppAuditRoute,
+  AppCashboxRoute: AppCashboxRoute,
   AppCustomersRoute: AppCustomersRoute,
   AppInventoryRoute: AppInventoryRoute,
   AppInvoicesRoute: AppInvoicesRoute,
