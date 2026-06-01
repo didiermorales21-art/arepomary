@@ -55,7 +55,7 @@ function SellersPage() {
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const [{ data: profiles }, { data: sales }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone").in("id", ids),
+        supabase.from("profiles").select("id, full_name, first_name, last_name, phone").in("id", ids),
         supabase.from("sales").select("seller_id").in("seller_id", ids),
       ]);
       const counts = new Map<string, number>();
@@ -64,12 +64,15 @@ function SellersPage() {
         .map((p) => ({
           id: p.id,
           full_name: p.full_name || "(sin nombre)",
+          first_name: (p as any).first_name || "",
+          last_name: (p as any).last_name || "",
           phone: p.phone,
           sales_count: counts.get(p.id) ?? 0,
           is_company: p.id === COMPANY_ID,
         }))
         .sort((a, b) => (a.is_company ? -1 : b.is_company ? 1 : a.full_name.localeCompare(b.full_name)));
     },
+
     enabled: isAdmin,
   });
 
