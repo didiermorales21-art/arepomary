@@ -30,10 +30,13 @@ const COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 interface Seller {
   id: string;
   full_name: string;
+  first_name: string;
+  last_name: string;
   phone: string | null;
   sales_count: number;
   is_company: boolean;
 }
+
 
 function SellersPage() {
   const qc = useQueryClient();
