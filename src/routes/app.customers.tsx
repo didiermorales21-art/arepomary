@@ -320,6 +320,7 @@ function CustomersPage() {
                 <TableHead>Barrio</TableHead>
                 <TableHead>Zona</TableHead>
                 <TableHead>Vendedor</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-[80px]"></TableHead>
               </TableRow>
@@ -327,13 +328,13 @@ function CustomersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                     No hay clientes todavía. Crea el primero.
                   </TableCell>
                 </TableRow>
@@ -347,6 +348,11 @@ function CustomersPage() {
                     <TableCell>{c.neighborhoods?.zones?.name || "—"}</TableCell>
                     <TableCell className="text-xs">{sellerNameMap.get(c.seller_id) || "—"}</TableCell>
                     <TableCell>
+                      <Badge variant={c.customer_type === "wholesale" ? "default" : "outline"}>
+                        {c.customer_type === "wholesale" ? "Comercial" : "Estándar"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
                     </TableCell>
                     <TableCell>
@@ -357,6 +363,7 @@ function CustomersPage() {
                   </TableRow>
                 ))
               )}
+
             </TableBody>
           </Table>
         </div>
