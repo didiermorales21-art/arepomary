@@ -44,17 +44,23 @@ function UsersPage() {
   const { hasRole } = useAuth();
   const isAdmin = hasRole("admin");
 
+  const fetchAuthUsers = useServerFn(listAuthUsers);
+
   const { data, isLoading } = useQuery({
     queryKey: ["users-with-roles"],
     queryFn: async () => {
-      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+      const [{ data: profiles, error: pErr }, { data: roles, error: rErr }, authUsers] = await Promise.all([
         supabase.from("profiles").select("id, full_name, phone, created_at").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("id, user_id, role"),
+        fetchAuthUsers().catch(() => [] as Array<{ id: string; email: string | null; last_sign_in_at: string | null }>),
       ]);
       if (pErr) throw pErr;
       if (rErr) throw rErr;
+      const authMap = new Map((authUsers ?? []).map((u) => [u.id, u]));
       return (profiles ?? []).map((p) => ({
         ...p,
+        email: authMap.get(p.id)?.email ?? null,
+        last_sign_in_at: authMap.get(p.id)?.last_sign_in_at ?? null,
         roles: (roles ?? []).filter((r) => r.user_id === p.id),
       }));
     },
