@@ -282,10 +282,18 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
         <Label htmlFor="name">Nombre</Label>
         <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="price">Precio (COP)</Label>
-        <Input id="price" type="number" min="0" step="100" required value={price} onChange={(e) => setPrice(e.target.value)} />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label htmlFor="price">Precio estándar (COP)</Label>
+          <Input id="price" type="number" min="0" step="100" required value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="wholesale_price">Precio al por mayor (COP)</Label>
+          <Input id="wholesale_price" type="number" min="0" step="100" value={wholesalePrice} onChange={(e) => setWholesalePrice(e.target.value)} />
+          <p className="text-xs text-muted-foreground">Aplica a clientes comerciales.</p>
+        </div>
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="description">Descripción</Label>
         <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} />
