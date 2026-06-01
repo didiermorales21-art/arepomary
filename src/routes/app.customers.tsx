@@ -390,7 +390,9 @@ function CustomersPage() {
                   notes: String(fd.get("notes") || ""),
                   seller_id: isAdmin ? editSellerId : (editing.seller_id || user?.id || COMPANY_ID),
                   status: editStatus,
+                  customer_type: isAdmin ? editCustomerType : undefined,
                 });
+
               }}
             >
               <div className="grid grid-cols-2 gap-3">
