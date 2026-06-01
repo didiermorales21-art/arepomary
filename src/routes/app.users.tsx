@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, KeyRound, Mail } from "lucide-react";
+import { listAuthUsers, updateUserPassword, updateUserEmail } from "@/lib/admin-users.functions";
 import {
   Dialog,
   DialogContent,
