@@ -41,6 +41,8 @@ function SellersPage() {
   const isAdmin = hasRole("admin");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Seller | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [pickUserId, setPickUserId] = useState<string>("");
 
   const { data: sellers, isLoading } = useQuery({
     queryKey: ["sellers-list"],
