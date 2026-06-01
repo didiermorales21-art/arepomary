@@ -52,7 +52,7 @@ function SettingsPage() {
   const updateMutation = useMutation({
     mutationFn: async (input: Record<string, any>) => {
       if (!data?.id) throw new Error("Sin registro");
-      const { error } = await supabase.from("company_settings").update(input).eq("id", data.id);
+      const { error } = await (supabase.from("company_settings") as any).update(input).eq("id", data.id);
       if (error) throw error;
     },
     onSuccess: () => {
