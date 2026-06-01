@@ -48,6 +48,8 @@ function CustomersPage() {
   const [editSellerId, setEditSellerId] = useState<string>("");
   const [editNeighborhoodId, setEditNeighborhoodId] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("active");
+  const [editCustomerType, setEditCustomerType] = useState<string>("standard");
+
 
   const { data: neighborhoods } = useQuery({
     queryKey: ["neighborhoods"],
