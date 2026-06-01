@@ -354,17 +354,80 @@ function LogisticsPage() {
             <TabsTrigger value="shipments">Envíos</TabsTrigger>
             <TabsTrigger value="drivers">Conductores</TabsTrigger>
           </TabsList>
-          <TabsContent value="shipments" className="mt-4">
+          <TabsContent value="shipments" className="mt-4 space-y-4">
+            <Card className="shadow-card">
+              <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-end md:justify-between">
+                <div className="grid flex-1 gap-3 md:grid-cols-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fecha de entrega</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="date"
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFilterDate("")}
+                        title="Limpiar fecha"
+                      >
+                        Todas
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Conductor</Label>
+                    <Select value={filterDriver} onValueChange={setFilterDriver}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {(drivers ?? []).map((d) => (
+                          <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Estado del envío</Label>
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={handleDownloadPdf}>
+                    <FileText className="mr-1 h-4 w-4" /> PDF
+                  </Button>
+                  <Button type="button" variant="outline" onClick={handleDownloadExcel}>
+                    <Download className="mr-1 h-4 w-4" /> Excel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="text-xs text-muted-foreground">
+              {filteredShipments.length} envío(s)
+              {filterDate && ` programados para ${filterDate}`}
+            </div>
+
             <div className="space-y-3">
-              {(shipments ?? []).length === 0 ? (
+              {filteredShipments.length === 0 ? (
                 <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
                   <Truck className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  Aún no hay envíos. Crea uno para empezar.
+                  No hay envíos para los filtros seleccionados.
                 </div>
               ) : (
-                (shipments ?? []).map((s) => {
-                  const order = s.orders as { order_number?: number; customers?: { name?: string } } | null;
-                  const driver = s.drivers as { name?: string; license_plate?: string } | null;
+                filteredShipments.map((s) => {
+                  const order = s.orders as { id?: string; order_number?: number; status?: string; customers?: { name?: string; phone?: string; address?: string } } | null;
+                  const driver = s.drivers as { name?: string; license_plate?: string; phone?: string } | null;
                   const zone = s.zones as { name?: string } | null;
                   return (
                     <Card key={s.id} className="shadow-card">
@@ -380,28 +443,52 @@ function LogisticsPage() {
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {order?.customers?.name ?? "Sin cliente"}
+                              {order?.customers?.phone && ` · ${order.customers.phone}`}
                               {driver?.name && ` · ${driver.name}${driver.license_plate ? ` (${driver.license_plate})` : ""}`}
                               {zone?.name && ` · ${zone.name}`}
                               {s.scheduled_for && ` · ${s.scheduled_for}`}
                             </div>
+                            {(s.address ?? order?.customers?.address) && (
+                              <div className="text-xs text-muted-foreground">
+                                📍 {s.address ?? order?.customers?.address}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={STATUS_TONE[s.status] ?? ""} variant="secondary">
-                            {STATUS_LABEL[s.status] ?? s.status}
-                          </Badge>
-                          {canManage && (
-                            <Select
-                              value={s.status}
-                              onValueChange={(v) => updateStatus.mutate({ id: s.id, status: v })}
-                            >
-                              <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge className={STATUS_TONE[s.status] ?? ""} variant="secondary">
+                              {STATUS_LABEL[s.status] ?? s.status}
+                            </Badge>
+                            {canManage && (
+                              <Select
+                                value={s.status}
+                                onValueChange={(v) => updateStatus.mutate({ id: s.id, status: v })}
+                              >
+                                <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                          {canManage && order?.id && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">Pedido:</span>
+                              <Select
+                                value={order.status ?? "draft"}
+                                onValueChange={(v) => updateOrderStatus.mutate({ id: order.id!, status: v })}
+                              >
+                                <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+                                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           )}
                         </div>
                       </CardContent>
