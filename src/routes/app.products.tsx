@@ -249,7 +249,7 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ sku, name, price: Number(price || 0), unit, description, active, image_url: imageUrl });
+        onSubmit({ sku, name, price: Number(price || 0), wholesale_price: Number(wholesalePrice || 0), unit, description, active, image_url: imageUrl });
       }}
     >
       <div className="flex items-center gap-4">
