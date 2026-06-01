@@ -30,10 +30,13 @@ const COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 interface Seller {
   id: string;
   full_name: string;
+  first_name: string;
+  last_name: string;
   phone: string | null;
   sales_count: number;
   is_company: boolean;
 }
+
 
 function SellersPage() {
   const qc = useQueryClient();
@@ -55,7 +58,7 @@ function SellersPage() {
       const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
       if (ids.length === 0) return [];
       const [{ data: profiles }, { data: sales }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone").in("id", ids),
+        supabase.from("profiles").select("id, full_name, first_name, last_name, phone").in("id", ids),
         supabase.from("sales").select("seller_id").in("seller_id", ids),
       ]);
       const counts = new Map<string, number>();
@@ -64,21 +67,25 @@ function SellersPage() {
         .map((p) => ({
           id: p.id,
           full_name: p.full_name || "(sin nombre)",
+          first_name: (p as any).first_name || "",
+          last_name: (p as any).last_name || "",
           phone: p.phone,
           sales_count: counts.get(p.id) ?? 0,
           is_company: p.id === COMPANY_ID,
         }))
         .sort((a, b) => (a.is_company ? -1 : b.is_company ? 1 : a.full_name.localeCompare(b.full_name)));
     },
+
     enabled: isAdmin,
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (input: { id?: string; full_name: string; phone: string }) => {
+    mutationFn: async (input: { id?: string; first_name: string; last_name: string; phone: string }) => {
       if (input.id) {
+        const full = `${input.first_name} ${input.last_name}`.trim();
         const { error } = await supabase
           .from("profiles")
-          .update({ full_name: input.full_name, phone: input.phone || null })
+          .update({ first_name: input.first_name, last_name: input.last_name, full_name: full, phone: input.phone || null })
           .eq("id", input.id);
         if (error) throw error;
       } else {
@@ -94,6 +101,7 @@ function SellersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const { data: candidates } = useQuery({
     queryKey: ["seller-candidates"],
@@ -279,19 +287,27 @@ function SellersPage() {
               const fd = new FormData(e.currentTarget);
               saveMutation.mutate({
                 id: editing?.id,
-                full_name: String(fd.get("full_name") || ""),
+                first_name: String(fd.get("first_name") || ""),
+                last_name: String(fd.get("last_name") || ""),
                 phone: String(fd.get("phone") || ""),
               });
             }}
           >
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Nombre</Label>
-              <Input id="full_name" name="full_name" defaultValue={editing?.full_name ?? ""} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">Nombres</Label>
+                <Input id="first_name" name="first_name" defaultValue={editing?.first_name ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Apellidos</Label>
+                <Input id="last_name" name="last_name" defaultValue={editing?.last_name ?? ""} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <Input id="phone" name="phone" defaultValue={editing?.phone ?? ""} inputMode="numeric" />
             </div>
+
             <DialogFooter>
               <Button type="submit" disabled={saveMutation.isPending} className="bg-gradient-primary">
                 {saveMutation.isPending ? "Guardando…" : "Guardar"}

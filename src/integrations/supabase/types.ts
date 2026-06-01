@@ -239,7 +239,9 @@ export type Database = {
           created_at: string
           customer_type: Database["public"]["Enums"]["customer_type"]
           document_id: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           name: string
           neighborhood_id: string | null
           notes: string | null
@@ -256,7 +258,9 @@ export type Database = {
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name: string
           neighborhood_id?: string | null
           notes?: string | null
@@ -273,7 +277,9 @@ export type Database = {
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string
           neighborhood_id?: string | null
           notes?: string | null
@@ -907,24 +913,30 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          first_name: string
           full_name: string
           id: string
+          last_name: string
           phone: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          first_name?: string
           full_name?: string
           id: string
+          last_name?: string
           phone?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          first_name?: string
           full_name?: string
           id?: string
+          last_name?: string
           phone?: string | null
           updated_at?: string
         }

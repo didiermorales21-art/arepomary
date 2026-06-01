@@ -75,12 +75,13 @@ function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, phone, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
+        .select("id, name, first_name, last_name, phone, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   const sellerNameMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -102,7 +103,8 @@ function CustomersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (input: {
-      name: string;
+      first_name: string;
+      last_name: string;
       document_id: string;
       phone: string;
       address: string;
@@ -117,8 +119,12 @@ function CustomersPage() {
       if (!input.seller_id) {
         throw new Error("Debes seleccionar un vendedor");
       }
+      if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      const composed = `${input.first_name} ${input.last_name}`.trim();
       const { error } = await supabase.from("customers").insert({
-        name: input.name,
+        name: composed,
+        first_name: input.first_name,
+        last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
         address: input.address,
@@ -141,7 +147,8 @@ function CustomersPage() {
   const updateMutation = useMutation({
     mutationFn: async (input: {
       id: string;
-      name: string;
+      first_name: string;
+      last_name: string;
       document_id: string;
       phone: string;
       address: string;
@@ -155,8 +162,12 @@ function CustomersPage() {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       }
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
+      if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      const composed = `${input.first_name} ${input.last_name}`.trim();
       const update: any = {
-        name: input.name,
+        name: composed,
+        first_name: input.first_name,
+        last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
         address: input.address,
@@ -180,6 +191,7 @@ function CustomersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   function openEdit(c: any) {
     setEditing(c);
@@ -214,7 +226,8 @@ function CustomersPage() {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
                   createMutation.mutate({
-                    name: String(fd.get("name") || ""),
+                    first_name: String(fd.get("first_name") || ""),
+                    last_name: String(fd.get("last_name") || ""),
                     document_id: String(fd.get("document_id") || ""),
                     phone,
                     address: String(fd.get("address") || ""),
@@ -240,10 +253,17 @@ function CustomersPage() {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nombre</Label>
-                  <Input id="name" name="name" required />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name">Nombres</Label>
+                    <Input id="first_name" name="first_name" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Apellidos</Label>
+                    <Input id="last_name" name="last_name" />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Dirección</Label>
                   <Input id="address" name="address" />
@@ -382,7 +402,8 @@ function CustomersPage() {
                 const fd = new FormData(e.currentTarget);
                 updateMutation.mutate({
                   id: editing.id,
-                  name: String(fd.get("name") || ""),
+                  first_name: String(fd.get("first_name") || ""),
+                  last_name: String(fd.get("last_name") || ""),
                   document_id: String(fd.get("document_id") || ""),
                   phone: editPhone,
                   address: String(fd.get("address") || ""),
@@ -410,10 +431,17 @@ function CustomersPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="e_name">Nombre</Label>
-                <Input id="e_name" name="name" defaultValue={editing.name} required />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="e_first_name">Nombres</Label>
+                  <Input id="e_first_name" name="first_name" defaultValue={editing.first_name || ""} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_last_name">Apellidos</Label>
+                  <Input id="e_last_name" name="last_name" defaultValue={editing.last_name || ""} />
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="e_address">Dirección</Label>
                 <Input id="e_address" name="address" defaultValue={editing.address || ""} />
