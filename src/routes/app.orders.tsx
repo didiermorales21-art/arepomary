@@ -265,7 +265,7 @@ function OrdersPage() {
                               setLines((prev) =>
                                 prev.map((x, idx) =>
                                   idx === i
-                                    ? { ...x, product_id: v, unit_price: p ? Number(p.price) : x.unit_price }
+                                    ? { ...x, product_id: v, unit_price: p ? priceFor(p) : x.unit_price }
                                     : x,
                                 ),
                               );
