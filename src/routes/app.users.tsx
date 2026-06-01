@@ -121,8 +121,13 @@ function UsersPage() {
                     <div>
                       <h3 className="font-display text-base font-semibold">{u.full_name || "(sin nombre)"}</h3>
                       <p className="text-xs text-muted-foreground">
-                        ID: {u.id.slice(0, 8)}… {u.phone && `· ${u.phone}`}
+                        {u.email ?? `ID: ${u.id.slice(0, 8)}…`} {u.phone && `· ${u.phone}`}
                       </p>
+                      {u.last_sign_in_at && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Último acceso: {new Date(u.last_sign_in_at).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -147,6 +152,7 @@ function UsersPage() {
                       existing={u.roles.map((r) => r.role as AppRole)}
                       onAdd={(role) => addRole.mutate({ user_id: u.id, role })}
                     />
+                    <CredentialsDialog userId={u.id} currentEmail={u.email} />
                   </div>
                 </CardContent>
               </Card>
