@@ -94,10 +94,38 @@ function SellersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: candidates } = useQuery({
+    queryKey: ["seller-candidates"],
+    queryFn: async () => {
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, phone").order("full_name"),
+        supabase.from("user_roles").select("user_id").eq("role", "seller"),
+      ]);
+      const sellerIds = new Set((roles ?? []).map((r) => r.user_id));
+      return (profiles ?? []).filter((p) => !sellerIds.has(p.id) && p.id !== COMPANY_ID);
+    },
+    enabled: isAdmin && addOpen,
+  });
+
+  const assignSeller = useMutation({
+    mutationFn: async (user_id: string) => {
+      const { error } = await supabase.from("user_roles").insert({ user_id, role: "seller" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["seller-candidates"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+      toast.success("Vendedor agregado");
+      setAddOpen(false);
+      setPickUserId("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (id === COMPANY_ID) throw new Error("No se puede eliminar el vendedor 'Empresa'");
-      // Reassign customers/orders to company
       await supabase.from("customers").update({ seller_id: COMPANY_ID }).eq("seller_id", id);
       await supabase.from("orders").update({ seller_id: COMPANY_ID }).eq("seller_id", id);
       const { error } = await supabase.from("user_roles").delete().eq("user_id", id).eq("role", "seller");
@@ -105,6 +133,8 @@ function SellersPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["seller-candidates"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
       toast.success("Vendedor eliminado. Sus clientes pasaron a 'Empresa'.");
     },
     onError: (e: Error) => toast.error(e.message),
