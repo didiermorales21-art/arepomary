@@ -418,7 +418,7 @@ function LogisticsPage() {
                                   >
                                     <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                      {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+                                      {Object.entries(SHIPMENT_STATUS_OPTIONS).map(([k, v]) => (
                                         <SelectItem key={k} value={k}>{v}</SelectItem>
                                       ))}
                                     </SelectContent>
