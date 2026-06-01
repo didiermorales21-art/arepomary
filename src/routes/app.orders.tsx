@@ -112,6 +112,24 @@ function OrdersPage() {
     queryFn: async () =>
       (await supabase.from("customers").select("id, name, document_id, phone, customer_type").order("name")).data ?? [],
   });
+  const { data: deliveryDays } = useQuery({
+    queryKey: ["delivery-days"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("company_settings")
+        .select("delivery_days" as any)
+        .limit(1)
+        .maybeSingle();
+      const dd = (data as any)?.delivery_days;
+      return Array.isArray(dd) && dd.length > 0 ? (dd as number[]) : [1, 2, 3, 4, 5, 6];
+    },
+  });
+  const isDayAllowed = (d: Date) => (deliveryDays ?? [1, 2, 3, 4, 5, 6]).includes(d.getDay());
+  const allowedDaysLabel = (() => {
+    const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const dd = deliveryDays ?? [];
+    return dd.length === 7 ? "Todos los días" : dd.slice().sort().map((i) => names[i]).join(", ");
+  })();
   const { data: products } = useQuery({
     queryKey: ["products-min"],
     queryFn: async () =>
