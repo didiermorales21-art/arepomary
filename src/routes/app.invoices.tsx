@@ -143,7 +143,7 @@ function InvoicesPage() {
   });
 
   const addPayment = useMutation({
-    mutationFn: async (input: { amount: number; method: string; reference: string }) => {
+    mutationFn: async (input: { amount: number; method: string; reference: string; gift_password?: string }) => {
       if (!detail) throw new Error("Sin factura");
       const pendiente = Number(detail.total ?? 0) - Number(detail.paid ?? 0);
       if (!Number.isFinite(input.amount) || input.amount <= 0) {
@@ -152,11 +152,12 @@ function InvoicesPage() {
       if (input.amount > pendiente + 0.001) {
         throw new Error(`El monto excede el saldo pendiente (${pendiente.toLocaleString()})`);
       }
-      const { error } = await supabase.from("invoice_payments").insert({
-        invoice_id: detail.id,
-        amount: input.amount,
-        method: input.method as "cash",
-        reference: input.reference || null,
+      const { error } = await supabase.rpc("add_invoice_payment", {
+        _invoice_id: detail.id,
+        _amount: input.amount,
+        _method: input.method,
+        _reference: input.reference || null,
+        _gift_password: input.gift_password || null,
       });
       if (error) throw error;
       return { cubreTotal: Math.abs(input.amount - pendiente) < 0.01 };
@@ -167,7 +168,7 @@ function InvoicesPage() {
       toast.success(res?.cubreTotal ? "Pago total registrado. Factura pagada." : "Pago parcial registrado");
       setPayOpen(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(e.message.includes("invalid gift password") ? "Clave incorrecta para Regalo" : e.message),
   });
 
   const exportList = (kind: "pdf" | "xlsx") => {
