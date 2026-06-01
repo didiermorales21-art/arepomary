@@ -284,19 +284,27 @@ function SellersPage() {
               const fd = new FormData(e.currentTarget);
               saveMutation.mutate({
                 id: editing?.id,
-                full_name: String(fd.get("full_name") || ""),
+                first_name: String(fd.get("first_name") || ""),
+                last_name: String(fd.get("last_name") || ""),
                 phone: String(fd.get("phone") || ""),
               });
             }}
           >
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Nombre</Label>
-              <Input id="full_name" name="full_name" defaultValue={editing?.full_name ?? ""} required />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">Nombres</Label>
+                <Input id="first_name" name="first_name" defaultValue={editing?.first_name ?? ""} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Apellidos</Label>
+                <Input id="last_name" name="last_name" defaultValue={editing?.last_name ?? ""} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <Input id="phone" name="phone" defaultValue={editing?.phone ?? ""} inputMode="numeric" />
             </div>
+
             <DialogFooter>
               <Button type="submit" disabled={saveMutation.isPending} className="bg-gradient-primary">
                 {saveMutation.isPending ? "Guardando…" : "Guardar"}
