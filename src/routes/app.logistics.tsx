@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -15,7 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Truck, User, Download, FileText } from "lucide-react";
+import { Truck, User, Download, FileText, CheckCircle2, MapPin } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,19 +25,6 @@ export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
 });
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Pendiente",
-  in_transit: "En tránsito",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-};
-const STATUS_TONE: Record<string, string> = {
-  pending: "bg-muted text-foreground",
-  in_transit: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
-  delivered: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
-  cancelled: "bg-destructive/20 text-destructive",
-};
-
 const ORDER_STATUS_LABEL: Record<string, string> = {
   draft: "Borrador",
   confirmed: "Confirmado",
@@ -47,74 +33,63 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
   delivered: "Entregado",
   cancelled: "Cancelado",
 };
+const ORDER_STATUS_TONE: Record<string, string> = {
+  draft: "bg-muted text-foreground",
+  confirmed: "bg-blue-500/20 text-blue-700 dark:text-blue-300",
+  in_production: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+  ready: "bg-purple-500/20 text-purple-700 dark:text-purple-300",
+  delivered: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+  cancelled: "bg-destructive/20 text-destructive",
+};
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const COMPANY_DRIVER_KEY = "__company__";
+
+type OrderRow = {
+  id: string;
+  order_number: number;
+  status: string;
+  total: number;
+  notes: string | null;
+  delivery_date: string | null;
+  driver_id: string | null;
+  customer_id: string;
+  customers: { name?: string | null; phone?: string | null; address?: string | null } | null;
+  drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
+};
+
+type DriverRow = { id: string; name: string; phone: string | null; license_plate: string | null; vehicle: string | null };
 
 function LogisticsPage() {
   const qc = useQueryClient();
   const { hasAnyRole } = useAuth();
   const canManage = hasAnyRole(["admin", "operations"]);
-  const [openShip, setOpenShip] = useState(false);
   const [openDriver, setOpenDriver] = useState(false);
   const [filterDate, setFilterDate] = useState<string>(todayISO());
   const [filterDriver, setFilterDriver] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const { data: shipments } = useQuery({
-    queryKey: ["shipments"],
+  const { data: orders } = useQuery({
+    queryKey: ["logistics-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("shipments")
-        .select("*, drivers(name, license_plate, phone), zones(name), orders(id, order_number, status, total, customers(name, phone, address))")
-        .order("created_at", { ascending: false });
+        .from("orders")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address), drivers(name, license_plate, phone)")
+        .not("status", "in", "(cancelled)")
+        .order("delivery_date", { ascending: true })
+        .order("order_number", { ascending: false })
+        .limit(500);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as unknown as OrderRow[];
     },
   });
 
   const { data: drivers } = useQuery({
     queryKey: ["drivers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("drivers").select("*").order("name");
+      const { data, error } = await supabase.from("drivers").select("*").eq("active", true).order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as DriverRow[];
     },
-  });
-
-  const { data: orders } = useQuery({
-    queryKey: ["orders-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, order_number, customers(name)")
-        .not("status", "in", "(delivered,cancelled)")
-        .order("order_number", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const { data: zones } = useQuery({
-    queryKey: ["zones-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("zones").select("id, name").order("name");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const createShipment = useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
-      const { error } = await supabase.from("shipments").insert(input as never);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["shipments"] });
-      toast.success("Envío creado");
-      setOpenShip(false);
-    },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const createDriver = useMutation({
@@ -130,249 +105,208 @@ function LogisticsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const patch: Record<string, unknown> = { status };
-      if (status === "in_transit") patch.dispatched_at = new Date().toISOString();
-      if (status === "delivered") patch.delivered_at = new Date().toISOString();
-      const { error } = await supabase.from("shipments").update(patch as never).eq("id", id);
+  const updateOrder = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("orders").update(patch as never).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["shipments"] });
-      toast.success("Estado actualizado");
+      qc.invalidateQueries({ queryKey: ["logistics-orders"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const updateOrderStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("orders").update({ status } as never).eq("id", id);
+  const bulkUpdateOrders = useMutation({
+    mutationFn: async ({ ids, patch }: { ids: string[]; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("orders").update(patch as never).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["shipments"] });
-      toast.success("Estado del pedido actualizado");
+      qc.invalidateQueries({ queryKey: ["logistics-orders"] });
+      toast.success("Pedidos actualizados");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  type ShipmentRow = NonNullable<typeof shipments>[number];
-  const filteredShipments = useMemo<ShipmentRow[]>(() => {
-    return (shipments ?? []).filter((s) => {
-      if (filterDate && s.scheduled_for !== filterDate) return false;
-      if (filterDriver !== "all" && s.driver_id !== filterDriver) return false;
-      if (filterStatus !== "all" && s.status !== filterStatus) return false;
+  // Filter orders by date/driver, then group into shipments (driver + date)
+  const filteredOrders = useMemo<OrderRow[]>(() => {
+    return (orders ?? []).filter((o) => {
+      if (!o.delivery_date) return false;
+      if (filterDate && o.delivery_date !== filterDate) return false;
+      if (filterDriver !== "all") {
+        if (filterDriver === COMPANY_DRIVER_KEY) {
+          if (o.driver_id) return false;
+        } else if (o.driver_id !== filterDriver) return false;
+      }
       return true;
     });
-  }, [shipments, filterDate, filterDriver, filterStatus]);
+  }, [orders, filterDate, filterDriver]);
+
+  type Group = {
+    key: string;
+    driverId: string | null;
+    driverName: string;
+    date: string;
+    orders: OrderRow[];
+  };
+
+  const groups = useMemo<Group[]>(() => {
+    const map = new Map<string, Group>();
+    for (const o of filteredOrders) {
+      const key = `${o.driver_id ?? "none"}|${o.delivery_date}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          driverId: o.driver_id,
+          driverName: o.drivers?.name ?? "Sin conductor asignado",
+          date: o.delivery_date!,
+          orders: [],
+        });
+      }
+      map.get(key)!.orders.push(o);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return a.driverName.localeCompare(b.driverName);
+    });
+  }, [filteredOrders]);
+
+  const unassignedOrders = useMemo<OrderRow[]>(() => {
+    return (orders ?? []).filter((o) => !o.delivery_date || !o.driver_id);
+  }, [orders]);
+
+  const buildExportRows = (list: OrderRow[]) =>
+    list.map((o) => [
+      `#${o.order_number}`,
+      o.delivery_date ?? "—",
+      o.drivers?.name ?? "Sin conductor",
+      o.customers?.name ?? "—",
+      o.customers?.phone ?? "—",
+      o.customers?.address ?? "—",
+      ORDER_STATUS_LABEL[o.status] ?? o.status,
+    ]);
 
   const handleDownloadPdf = () => {
-    if (filteredShipments.length === 0) {
+    if (filteredOrders.length === 0) {
       toast.error("No hay pedidos para descargar");
       return;
     }
-    const rows = filteredShipments.map((s) => {
-      const o = s.orders as { order_number?: number; customers?: { name?: string; phone?: string; address?: string } } | null;
-      const d = s.drivers as { name?: string; license_plate?: string } | null;
-      const z = s.zones as { name?: string } | null;
-      return [
-        `#${s.shipment_number}`,
-        o?.order_number ? `#${o.order_number}` : "—",
-        o?.customers?.name ?? "—",
-        o?.customers?.phone ?? "—",
-        s.address ?? o?.customers?.address ?? "—",
-        z?.name ?? "—",
-        d?.name ?? "—",
-        STATUS_LABEL[s.status] ?? s.status,
-      ];
-    });
-    const driverLabel =
-      filterDriver === "all"
-        ? "Todos"
-        : (drivers ?? []).find((d) => d.id === filterDriver)?.name ?? "—";
     exportToPdf({
       title: "Pedidos por entregar",
-      columns: ["Envío", "Pedido", "Cliente", "Teléfono", "Dirección", "Zona", "Conductor", "Estado"],
-      rows,
+      columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Estado"],
+      rows: buildExportRows(filteredOrders),
       meta: {
         Fecha: filterDate || "Todas",
-        Conductor: driverLabel,
-        Estado: filterStatus === "all" ? "Todos" : STATUS_LABEL[filterStatus] ?? filterStatus,
-        Total: String(filteredShipments.length),
+        Conductor:
+          filterDriver === "all"
+            ? "Todos"
+            : filterDriver === COMPANY_DRIVER_KEY
+              ? "Sin asignar"
+              : (drivers ?? []).find((d) => d.id === filterDriver)?.name ?? "—",
+        Pedidos: String(filteredOrders.length),
       },
       filename: `entregas_${filterDate || "todas"}.pdf`,
     });
   };
 
   const handleDownloadExcel = () => {
-    if (filteredShipments.length === 0) {
+    if (filteredOrders.length === 0) {
       toast.error("No hay pedidos para descargar");
       return;
     }
-    const rows = filteredShipments.map((s) => {
-      const o = s.orders as { order_number?: number; customers?: { name?: string; phone?: string; address?: string } } | null;
-      const d = s.drivers as { name?: string; license_plate?: string } | null;
-      const z = s.zones as { name?: string } | null;
-      return [
-        s.shipment_number,
-        o?.order_number ?? "",
-        o?.customers?.name ?? "",
-        o?.customers?.phone ?? "",
-        s.address ?? o?.customers?.address ?? "",
-        z?.name ?? "",
-        d?.name ?? "",
-        STATUS_LABEL[s.status] ?? s.status,
-      ];
-    });
     exportToExcel({
       filename: `entregas_${filterDate || "todas"}`,
       sheets: [{
         name: "Entregas",
-        columns: ["Envío", "Pedido", "Cliente", "Teléfono", "Dirección", "Zona", "Conductor", "Estado"],
-        rows,
+        columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Estado"],
+        rows: buildExportRows(filteredOrders),
       }],
     });
   };
 
+  const downloadGroupPdf = (g: Group) => {
+    exportToPdf({
+      title: `Ruta ${g.driverName}`,
+      columns: ["Pedido", "Cliente", "Teléfono", "Dirección", "Total", "Estado"],
+      rows: g.orders.map((o) => [
+        `#${o.order_number}`,
+        o.customers?.name ?? "—",
+        o.customers?.phone ?? "—",
+        o.customers?.address ?? "—",
+        String(o.total ?? 0),
+        ORDER_STATUS_LABEL[o.status] ?? o.status,
+      ]),
+      meta: {
+        Conductor: g.driverName,
+        Fecha: g.date,
+        Pedidos: String(g.orders.length),
+      },
+      filename: `ruta_${g.driverName.replace(/\s+/g, "_")}_${g.date}.pdf`,
+    });
+  };
 
   return (
     <>
       <PageHeader
         title="Logística"
-        description="Planificación de envíos, conductores y entregas."
+        description="Los envíos se arman automáticamente agrupando los pedidos de cada conductor por día."
         actions={
           canManage && (
-            <div className="flex gap-2">
-              <Dialog open={openDriver} onOpenChange={setOpenDriver}>
-                <DialogTrigger asChild>
-                  <Button variant="outline"><User className="mr-1 h-4 w-4" /> Conductor</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle className="font-display">Nuevo conductor</DialogTitle></DialogHeader>
-                  <form
-                    className="space-y-3"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const fd = new FormData(e.currentTarget);
-                      const phone = String(fd.get("phone") || "");
-                      if (phone && !isValidPhone(phone)) {
-                        toast.error("El teléfono debe tener 10 dígitos y comenzar con 3");
-                        return;
-                      }
-                      createDriver.mutate({
-                        name: String(fd.get("name") || ""),
-                        phone: phone || null,
-                        license_plate: String(fd.get("license_plate") || "") || null,
-                        vehicle: String(fd.get("vehicle") || "") || null,
-                      });
-                    }}
-                  >
-                    <div className="space-y-2"><Label>Nombre</Label><Input name="name" required /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
-                      <div className="space-y-2"><Label>Placa</Label><Input name="license_plate" /></div>
-                    </div>
-                    <div className="space-y-2"><Label>Vehículo</Label><Input name="vehicle" placeholder="Camioneta NPR" /></div>
-                    <DialogFooter><Button type="submit" disabled={createDriver.isPending} className="bg-gradient-primary">Guardar</Button></DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-
-              <Dialog open={openShip} onOpenChange={setOpenShip}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-primary shadow-elegant"><Plus className="mr-1 h-4 w-4" /> Envío</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle className="font-display">Nuevo envío</DialogTitle></DialogHeader>
-                  <form
-                    className="space-y-3"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const fd = new FormData(e.currentTarget);
-                      createShipment.mutate({
-                        order_id: String(fd.get("order_id") || "") || null,
-                        driver_id: String(fd.get("driver_id") || "") || null,
-                        zone_id: String(fd.get("zone_id") || "") || null,
-                        scheduled_for: String(fd.get("scheduled_for") || "") || null,
-                        address: String(fd.get("address") || "") || null,
-                        notes: String(fd.get("notes") || "") || null,
-                      });
-                    }}
-                  >
-                    <div className="space-y-2">
-                      <Label>Pedido</Label>
-                      <Select name="order_id">
-                        <SelectTrigger><SelectValue placeholder="Selecciona pedido" /></SelectTrigger>
-                        <SelectContent>
-                          {(orders ?? []).map((o) => (
-                            <SelectItem key={o.id} value={o.id}>
-                              #{o.order_number} — {(o.customers as { name?: string } | null)?.name ?? "—"}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-2">
-                        <Label>Conductor</Label>
-                        <Select name="driver_id">
-                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                          <SelectContent>
-                            {(drivers ?? []).map((d) => (
-                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Zona</Label>
-                        <Select name="zone_id">
-                          <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                          <SelectContent>
-                            {(zones ?? []).map((z) => (
-                              <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="space-y-2"><Label>Fecha programada</Label><Input type="date" name="scheduled_for" /></div>
-                    <div className="space-y-2"><Label>Dirección</Label><Input name="address" /></div>
-                    <div className="space-y-2"><Label>Notas</Label><Textarea name="notes" rows={2} /></div>
-                    <DialogFooter><Button type="submit" disabled={createShipment.isPending} className="bg-gradient-primary">Crear envío</Button></DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <Dialog open={openDriver} onOpenChange={setOpenDriver}>
+              <DialogTrigger asChild>
+                <Button variant="outline"><User className="mr-1 h-4 w-4" /> Conductor</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle className="font-display">Nuevo conductor</DialogTitle></DialogHeader>
+                <form
+                  className="space-y-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    const phone = String(fd.get("phone") || "");
+                    if (phone && !isValidPhone(phone)) {
+                      toast.error("El teléfono debe tener 10 dígitos y comenzar con 3");
+                      return;
+                    }
+                    createDriver.mutate({
+                      name: String(fd.get("name") || ""),
+                      phone: phone || null,
+                      license_plate: String(fd.get("license_plate") || "") || null,
+                      vehicle: String(fd.get("vehicle") || "") || null,
+                    });
+                  }}
+                >
+                  <div className="space-y-2"><Label>Nombre</Label><Input name="name" required /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
+                    <div className="space-y-2"><Label>Placa</Label><Input name="license_plate" /></div>
+                  </div>
+                  <div className="space-y-2"><Label>Vehículo</Label><Input name="vehicle" placeholder="Camioneta NPR" /></div>
+                  <DialogFooter><Button type="submit" disabled={createDriver.isPending} className="bg-gradient-primary">Guardar</Button></DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           )
         }
       />
+
       <div className="p-6">
         <Tabs defaultValue="shipments">
           <TabsList>
-            <TabsTrigger value="shipments">Envíos</TabsTrigger>
+            <TabsTrigger value="shipments">Envíos del día</TabsTrigger>
+            <TabsTrigger value="unassigned">Por asignar ({unassignedOrders.length})</TabsTrigger>
             <TabsTrigger value="drivers">Conductores</TabsTrigger>
           </TabsList>
+
           <TabsContent value="shipments" className="mt-4 space-y-4">
             <Card className="shadow-card">
               <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-end md:justify-between">
-                <div className="grid flex-1 gap-3 md:grid-cols-3">
+                <div className="grid flex-1 gap-3 md:grid-cols-2">
                   <div className="space-y-1">
                     <Label className="text-xs">Fecha de entrega</Label>
                     <div className="flex gap-2">
-                      <Input
-                        type="date"
-                        value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setFilterDate("")}
-                        title="Limpiar fecha"
-                      >
+                      <Input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+                      <Button type="button" variant="outline" size="sm" onClick={() => setFilterDate("")}>
                         Todas
                       </Button>
                     </div>
@@ -383,20 +317,9 @@ function LogisticsPage() {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value={COMPANY_DRIVER_KEY}>Sin asignar</SelectItem>
                         {(drivers ?? []).map((d) => (
                           <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Estado del envío</Label>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos</SelectItem>
-                        {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                          <SelectItem key={k} value={k}>{v}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -414,90 +337,154 @@ function LogisticsPage() {
             </Card>
 
             <div className="text-xs text-muted-foreground">
-              {filteredShipments.length} envío(s)
-              {filterDate && ` programados para ${filterDate}`}
+              {groups.length} envío(s) · {filteredOrders.length} pedido(s)
+              {filterDate && ` · ${filterDate}`}
             </div>
 
-            <div className="space-y-3">
-              {filteredShipments.length === 0 ? (
-                <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
-                  <Truck className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                  No hay envíos para los filtros seleccionados.
-                </div>
-              ) : (
-                filteredShipments.map((s) => {
-                  const order = s.orders as { id?: string; order_number?: number; status?: string; customers?: { name?: string; phone?: string; address?: string } } | null;
-                  const driver = s.drivers as { name?: string; license_plate?: string; phone?: string } | null;
-                  const zone = s.zones as { name?: string } | null;
+            {groups.length === 0 ? (
+              <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
+                <Truck className="mx-auto mb-2 h-8 w-8 opacity-50" />
+                No hay pedidos asignados para los filtros seleccionados.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {groups.map((g) => {
+                  const pending = g.orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
+                  const allDelivered = pending.length === 0;
                   return (
-                    <Card key={s.id} className="shadow-card">
-                      <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
-                            <Truck className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <div className="font-display text-base font-semibold">
-                              Envío #{s.shipment_number}
-                              {order?.order_number && <span className="text-muted-foreground"> · Pedido #{order.order_number}</span>}
+                    <Card key={g.key} className="shadow-card">
+                      <CardContent className="space-y-3 p-4">
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground">
+                              <Truck className="h-5 w-5" />
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {order?.customers?.name ?? "Sin cliente"}
-                              {order?.customers?.phone && ` · ${order.customers.phone}`}
-                              {driver?.name && ` · ${driver.name}${driver.license_plate ? ` (${driver.license_plate})` : ""}`}
-                              {zone?.name && ` · ${zone.name}`}
-                              {s.scheduled_for && ` · ${s.scheduled_for}`}
-                            </div>
-                            {(s.address ?? order?.customers?.address) && (
-                              <div className="text-xs text-muted-foreground">
-                                📍 {s.address ?? order?.customers?.address}
+                            <div>
+                              <div className="font-display text-base font-semibold">
+                                {g.driverName} · {g.date}
                               </div>
+                              <div className="text-xs text-muted-foreground">
+                                {g.orders.length} pedido(s) · {pending.length} pendiente(s)
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" size="sm" variant="outline" onClick={() => downloadGroupPdf(g)}>
+                              <FileText className="mr-1 h-4 w-4" /> Ruta PDF
+                            </Button>
+                            {canManage && !allDelivered && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="bg-gradient-primary"
+                                disabled={bulkUpdateOrders.isPending}
+                                onClick={() => bulkUpdateOrders.mutate({ ids: pending.map((o) => o.id), patch: { status: "delivered" } })}
+                              >
+                                <CheckCircle2 className="mr-1 h-4 w-4" /> Marcar entregados
+                              </Button>
                             )}
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="flex items-center gap-2">
-                            <Badge className={STATUS_TONE[s.status] ?? ""} variant="secondary">
-                              {STATUS_LABEL[s.status] ?? s.status}
-                            </Badge>
-                            {canManage && (
-                              <Select
-                                value={s.status}
-                                onValueChange={(v) => updateStatus.mutate({ id: s.id, status: v })}
-                              >
-                                <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(STATUS_LABEL).map(([k, v]) => (
-                                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                          {canManage && order?.id && (
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">Pedido:</span>
-                              <Select
-                                value={order.status ?? "draft"}
-                                onValueChange={(v) => updateOrderStatus.mutate({ id: order.id!, status: v })}
-                              >
-                                <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
-                                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+
+                        <div className="divide-y rounded-lg border">
+                          {g.orders.map((o) => (
+                            <div key={o.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium">
+                                  Pedido #{o.order_number} · {o.customers?.name ?? "—"}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                  {o.customers?.phone && <span>{o.customers.phone}</span>}
+                                  {o.customers?.address && (
+                                    <span className="inline-flex items-center gap-1">
+                                      <MapPin className="h-3 w-3" /> {o.customers.address}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge className={ORDER_STATUS_TONE[o.status] ?? ""} variant="secondary">
+                                  {ORDER_STATUS_LABEL[o.status] ?? o.status}
+                                </Badge>
+                                {canManage && (
+                                  <Select
+                                    value={o.status}
+                                    onValueChange={(v) => updateOrder.mutate({ id: o.id, patch: { status: v } })}
+                                  >
+                                    <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+                                        <SelectItem key={k} value={k}>{v}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          ))}
                         </div>
                       </CardContent>
                     </Card>
                   );
-                })
-              )}
-            </div>
+                })}
+              </div>
+            )}
           </TabsContent>
+
+          <TabsContent value="unassigned" className="mt-4 space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Asigna fecha de entrega y conductor para que el pedido aparezca dentro de un envío.
+            </div>
+            {unassignedOrders.length === 0 ? (
+              <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
+                Todos los pedidos activos ya tienen fecha y conductor asignados.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {unassignedOrders.map((o) => (
+                  <Card key={o.id} className="shadow-card">
+                    <CardContent className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">
+                          Pedido #{o.order_number} · {o.customers?.name ?? "—"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {o.customers?.phone ?? ""} {o.customers?.address ? `· ${o.customers.address}` : ""}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          type="date"
+                          className="h-8 w-40"
+                          defaultValue={o.delivery_date ?? ""}
+                          onBlur={(e) => {
+                            const v = e.currentTarget.value || null;
+                            if (v !== (o.delivery_date ?? null)) {
+                              updateOrder.mutate({ id: o.id, patch: { delivery_date: v } });
+                            }
+                          }}
+                          disabled={!canManage}
+                        />
+                        <Select
+                          value={o.driver_id ?? ""}
+                          onValueChange={(v) => updateOrder.mutate({ id: o.id, patch: { driver_id: v || null } })}
+                          disabled={!canManage}
+                        >
+                          <SelectTrigger className="h-8 w-44"><SelectValue placeholder="Conductor" /></SelectTrigger>
+                          <SelectContent>
+                            {(drivers ?? []).map((d) => (
+                              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="drivers" className="mt-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {(drivers ?? []).map((d) => (
