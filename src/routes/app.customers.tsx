@@ -402,7 +402,8 @@ function CustomersPage() {
                 const fd = new FormData(e.currentTarget);
                 updateMutation.mutate({
                   id: editing.id,
-                  name: String(fd.get("name") || ""),
+                  first_name: String(fd.get("first_name") || ""),
+                  last_name: String(fd.get("last_name") || ""),
                   document_id: String(fd.get("document_id") || ""),
                   phone: editPhone,
                   address: String(fd.get("address") || ""),
@@ -430,10 +431,17 @@ function CustomersPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="e_name">Nombre</Label>
-                <Input id="e_name" name="name" defaultValue={editing.name} required />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="e_first_name">Nombres</Label>
+                  <Input id="e_first_name" name="first_name" defaultValue={editing.first_name || ""} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_last_name">Apellidos</Label>
+                  <Input id="e_last_name" name="last_name" defaultValue={editing.last_name || ""} />
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="e_address">Dirección</Label>
                 <Input id="e_address" name="address" defaultValue={editing.address || ""} />
