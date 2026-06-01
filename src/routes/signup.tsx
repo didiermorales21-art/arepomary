@@ -12,7 +12,8 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,10 +21,11 @@ function SignupPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const fullName = `${firstName} ${lastName}`.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { first_name: firstName, last_name: lastName, full_name: fullName } },
     });
     setLoading(false);
     if (error) {
@@ -41,10 +43,17 @@ function SignupPage() {
           <h1 className="font-display text-2xl font-semibold">Crear cuenta</h1>
           <p className="mt-1 text-sm text-muted-foreground">Te asignaremos el rol cliente por defecto.</p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="name">Nombre completo</Label>
-          <Input id="name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="first_name">Nombres</Label>
+            <Input id="first_name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="last_name">Apellidos</Label>
+            <Input id="last_name" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </div>
         </div>
+
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
