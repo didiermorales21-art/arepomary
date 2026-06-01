@@ -101,8 +101,9 @@ function UsersPage() {
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : (
-          <div className="grid gap-4">
-            {(data ?? []).map((u) => (
+          (() => {
+            const users = data ?? [];
+            const renderUser = (u: typeof users[number]) => (
               <Card key={u.id} className="shadow-card">
                 <CardContent className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
@@ -122,7 +123,7 @@ function UsersPage() {
                     ) : (
                       u.roles.map((r) => (
                         <Badge key={r.id} variant="secondary" className="gap-1">
-                          {r.role}
+                          {ROLE_LABELS[r.role as AppRole] ?? r.role}
                           <button
                             onClick={() => removeRole.mutate(r.id)}
                             className="ml-1 rounded-full hover:bg-destructive/20"
@@ -141,8 +142,49 @@ function UsersPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            );
+
+            const noRole = users.filter((u) => u.roles.length === 0);
+
+            return (
+              <Tabs defaultValue="all">
+                <TabsList className="flex flex-wrap h-auto">
+                  <TabsTrigger value="all">Todos ({users.length})</TabsTrigger>
+                  {ALL_ROLES.map((role) => {
+                    const count = users.filter((u) => u.roles.some((r) => r.role === role)).length;
+                    return (
+                      <TabsTrigger key={role} value={role}>
+                        {ROLE_LABELS[role]} ({count})
+                      </TabsTrigger>
+                    );
+                  })}
+                  <TabsTrigger value="none">Sin rol ({noRole.length})</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="mt-4">
+                  <div className="grid gap-4">{users.map(renderUser)}</div>
+                </TabsContent>
+                {ALL_ROLES.map((role) => {
+                  const filtered = users.filter((u) => u.roles.some((r) => r.role === role));
+                  return (
+                    <TabsContent key={role} value={role} className="mt-4">
+                      {filtered.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No hay usuarios con este rol.</p>
+                      ) : (
+                        <div className="grid gap-4">{filtered.map(renderUser)}</div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+                <TabsContent value="none" className="mt-4">
+                  {noRole.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Todos los usuarios tienen al menos un rol.</p>
+                  ) : (
+                    <div className="grid gap-4">{noRole.map(renderUser)}</div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            );
+          })()
         )}
       </div>
     </>
