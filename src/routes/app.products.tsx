@@ -219,6 +219,8 @@ function ProductFormFields({ editing, isPending, onSubmit }: { editing: any; isP
   const [sku, setSku] = useState(editing?.sku ?? "");
   const [name, setName] = useState(editing?.name ?? "");
   const [price, setPrice] = useState<string>(editing?.price ? String(editing.price) : "");
+  const [wholesalePrice, setWholesalePrice] = useState<string>(editing?.wholesale_price ? String(editing.wholesale_price) : "");
+
   const [unit, setUnit] = useState(editing?.unit ?? "paquete");
   const [description, setDescription] = useState(editing?.description ?? "");
   const [active, setActive] = useState<boolean>(editing ? !!editing.active : true);
