@@ -57,6 +57,7 @@ const navOps = [
 
 const navFinance = [
   { title: "Facturas", url: "/app/invoices", icon: Receipt, soon: false },
+  { title: "Caja", url: "/app/cashbox", icon: Wallet, soon: false },
   { title: "Cuentas por cobrar", url: "/app/receivables", icon: Wallet, soon: false },
   { title: "Proveedores", url: "/app/suppliers", icon: Building2, soon: false },
   { title: "Cuentas por pagar", url: "/app/payables", icon: FileText, soon: false },
