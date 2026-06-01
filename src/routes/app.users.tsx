@@ -269,3 +269,92 @@ function AddRoleDialog({
     </Dialog>
   );
 }
+
+function CredentialsDialog({ userId, currentEmail }: { userId: string; currentEmail: string | null }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(currentEmail ?? "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+
+  const updateEmail = useServerFn(updateUserEmail);
+  const updatePassword = useServerFn(updateUserPassword);
+
+  const emailMut = useMutation({
+    mutationFn: () => updateEmail({ data: { user_id: userId, new_email: email } }),
+    onSuccess: () => {
+      toast.success("Correo actualizado");
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const passwordMut = useMutation({
+    mutationFn: () => updatePassword({ data: { user_id: userId, new_password: password } }),
+    onSuccess: () => {
+      toast.success("Contraseña actualizada");
+      setPassword("");
+      setConfirm("");
+      setOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" title="Credenciales">
+          <KeyRound className="mr-1 h-3 w-3" /> Credenciales
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-display">Credenciales de acceso</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1"><Mail className="h-3 w-3" /> Correo electrónico</Label>
+            <div className="flex gap-2">
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+              <Button
+                onClick={() => emailMut.mutate()}
+                disabled={!email || email === currentEmail || emailMut.isPending}
+                variant="outline"
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2 border-t pt-4">
+            <Label className="flex items-center gap-1"><KeyRound className="h-3 w-3" /> Nueva contraseña</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 8 caracteres"
+            />
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="Confirmar contraseña"
+            />
+            <p className="text-xs text-muted-foreground">
+              Por seguridad las contraseñas se almacenan cifradas y no pueden visualizarse. Solo es posible asignar una nueva.
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            onClick={() => passwordMut.mutate()}
+            disabled={password.length < 8 || password !== confirm || passwordMut.isPending}
+            className="bg-gradient-primary"
+          >
+            Actualizar contraseña
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
