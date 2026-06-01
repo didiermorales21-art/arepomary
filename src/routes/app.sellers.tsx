@@ -15,7 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { UserSquare2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserSquare2, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,6 +41,8 @@ function SellersPage() {
   const isAdmin = hasRole("admin");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Seller | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [pickUserId, setPickUserId] = useState<string>("");
 
   const { data: sellers, isLoading } = useQuery({
     queryKey: ["sellers-list"],
@@ -84,6 +87,7 @@ function SellersPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
       toast.success("Vendedor actualizado");
       setOpen(false);
       setEditing(null);
@@ -91,10 +95,38 @@ function SellersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: candidates } = useQuery({
+    queryKey: ["seller-candidates"],
+    queryFn: async () => {
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, phone").order("full_name"),
+        supabase.from("user_roles").select("user_id").eq("role", "seller"),
+      ]);
+      const sellerIds = new Set((roles ?? []).map((r) => r.user_id));
+      return (profiles ?? []).filter((p) => !sellerIds.has(p.id) && p.id !== COMPANY_ID);
+    },
+    enabled: isAdmin && addOpen,
+  });
+
+  const assignSeller = useMutation({
+    mutationFn: async (user_id: string) => {
+      const { error } = await supabase.from("user_roles").insert({ user_id, role: "seller" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["seller-candidates"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
+      toast.success("Vendedor agregado");
+      setAddOpen(false);
+      setPickUserId("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       if (id === COMPANY_ID) throw new Error("No se puede eliminar el vendedor 'Empresa'");
-      // Reassign customers/orders to company
       await supabase.from("customers").update({ seller_id: COMPANY_ID }).eq("seller_id", id);
       await supabase.from("orders").update({ seller_id: COMPANY_ID }).eq("seller_id", id);
       const { error } = await supabase.from("user_roles").delete().eq("user_id", id).eq("role", "seller");
@@ -102,6 +134,8 @@ function SellersPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sellers-list"] });
+      qc.invalidateQueries({ queryKey: ["seller-candidates"] });
+      qc.invalidateQueries({ queryKey: ["users-with-roles"] });
       toast.success("Vendedor eliminado. Sus clientes pasaron a 'Empresa'.");
     },
     onError: (e: Error) => toast.error(e.message),
@@ -123,6 +157,11 @@ function SellersPage() {
         description="Equipo comercial. Todo cliente debe estar asociado a un vendedor."
       />
       <div className="p-6">
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setAddOpen(true)} className="bg-gradient-primary">
+            <UserPlus className="mr-2 h-4 w-4" /> Agregar vendedor
+          </Button>
+        </div>
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Cargando…</p>
         ) : (
@@ -182,10 +221,51 @@ function SellersPage() {
 
         <p className="mt-6 text-xs text-muted-foreground">
           <Plus className="mr-1 inline h-3 w-3" />
-          Para crear un vendedor con acceso al sistema, crea el usuario en{" "}
-          <a className="underline" href="/app/users">Usuarios</a> y asígnale el rol <Badge variant="secondary" className="text-[10px]">seller</Badge>.
+          Para crear un usuario nuevo con acceso al sistema, primero créalo en{" "}
+          <a className="underline" href="/app/users">Usuarios</a>; luego podrás asignarle el rol <Badge variant="secondary" className="text-[10px]">vendedor</Badge> desde aquí o desde Usuarios.
         </p>
       </div>
+
+      <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setPickUserId(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">Agregar vendedor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Usuario</Label>
+              <Select value={pickUserId} onValueChange={setPickUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un usuario" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(candidates ?? []).length === 0 ? (
+                    <div className="px-2 py-3 text-xs text-muted-foreground">
+                      No hay usuarios disponibles. Crea uno desde Usuarios.
+                    </div>
+                  ) : (
+                    (candidates ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.full_name || "(sin nombre)"} {c.phone ? `· ${c.phone}` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!pickUserId || assignSeller.isPending}
+              onClick={() => assignSeller.mutate(pickUserId)}
+              className="bg-gradient-primary"
+            >
+              Asignar como vendedor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
         <DialogContent>
