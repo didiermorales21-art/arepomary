@@ -19,7 +19,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  admin: "Administradores",
+  seller: "Vendedores",
+  operations: "Operaciones",
+  production_operator: "Producción",
+  logistics_operator: "Logística",
+  customer: "Clientes",
+};
 
 export const Route = createFileRoute("/app/users")({
   component: UsersPage,
