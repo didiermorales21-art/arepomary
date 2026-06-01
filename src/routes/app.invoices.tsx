@@ -156,8 +156,8 @@ function InvoicesPage() {
         _invoice_id: detail.id,
         _amount: input.amount,
         _method: input.method,
-        _reference: input.reference || null,
-        _gift_password: input.gift_password || null,
+        _reference: input.reference || undefined,
+        _gift_password: input.gift_password || undefined,
       });
       if (error) throw error;
       return { cubreTotal: Math.abs(input.amount - pendiente) < 0.01 };
