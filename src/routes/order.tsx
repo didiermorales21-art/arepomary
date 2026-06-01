@@ -47,6 +47,22 @@ function GuestOrderPage() {
   const [lookingUp, setLookingUp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [deliveryDate, setDeliveryDate] = useState<string>("");
+
+  const { data: deliveryDays } = useQuery({
+    queryKey: ["public-delivery-days"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("get_delivery_days" as any);
+      return Array.isArray(data) && data.length > 0 ? (data as number[]) : [1, 2, 3, 4, 5, 6];
+    },
+  });
+  const isDayAllowed = (d: Date) => (deliveryDays ?? [1, 2, 3, 4, 5, 6]).includes(d.getDay());
+  const allowedDaysLabel = (() => {
+    const names = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const dd = deliveryDays ?? [];
+    return dd.length === 7 ? "Todos los días" : dd.slice().sort().map((i) => names[i]).join(", ");
+  })();
+
   const { data: products } = useQuery({
     queryKey: ["public-products-all"],
     queryFn: async () =>
