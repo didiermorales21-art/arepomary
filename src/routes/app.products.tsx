@@ -181,6 +181,8 @@ function ProductsPage() {
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.unit}</TableCell>
                     <TableCell className="text-right font-medium">{fmt(Number(p.price))}</TableCell>
+                    <TableCell className="text-right text-muted-foreground">{fmt(Number((p as any).wholesale_price ?? 0))}</TableCell>
+
                     <TableCell>
                       <Badge variant={p.active ? "default" : "secondary"}>{p.active ? "activo" : "inactivo"}</Badge>
                     </TableCell>
