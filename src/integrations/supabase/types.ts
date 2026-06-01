@@ -237,6 +237,7 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          customer_type: Database["public"]["Enums"]["customer_type"]
           document_id: string | null
           id: string
           name: string
@@ -253,6 +254,7 @@ export type Database = {
         Insert: {
           address?: string | null
           created_at?: string
+          customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
           id?: string
           name: string
@@ -269,6 +271,7 @@ export type Database = {
         Update: {
           address?: string | null
           created_at?: string
+          customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
           id?: string
           name?: string
@@ -870,6 +873,7 @@ export type Database = {
           sku: string
           unit: string
           updated_at: string
+          wholesale_price: number
         }
         Insert: {
           active?: boolean
@@ -882,6 +886,7 @@ export type Database = {
           sku: string
           unit?: string
           updated_at?: string
+          wholesale_price?: number
         }
         Update: {
           active?: boolean
@@ -894,6 +899,7 @@ export type Database = {
           sku?: string
           unit?: string
           updated_at?: string
+          wholesale_price?: number
         }
         Relationships: []
       }
@@ -1278,6 +1284,7 @@ export type Database = {
       batch_status: "planned" | "in_progress" | "completed" | "cancelled"
       bill_status: "draft" | "received" | "paid" | "overdue" | "cancelled"
       customer_status: "active" | "inactive" | "prospect"
+      customer_type: "standard" | "wholesale"
       invoice_status: "draft" | "issued" | "paid" | "overdue" | "cancelled"
       movement_type:
         | "in"
@@ -1434,6 +1441,7 @@ export const Constants = {
       batch_status: ["planned", "in_progress", "completed", "cancelled"],
       bill_status: ["draft", "received", "paid", "overdue", "cancelled"],
       customer_status: ["active", "inactive", "prospect"],
+      customer_type: ["standard", "wholesale"],
       invoice_status: ["draft", "issued", "paid", "overdue", "cancelled"],
       movement_type: ["in", "out", "adjust", "production", "sale", "transfer"],
       order_status: [
