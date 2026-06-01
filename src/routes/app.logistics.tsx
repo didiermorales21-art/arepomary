@@ -15,11 +15,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Truck, User } from "lucide-react";
-import { useState } from "react";
+import { Plus, Truck, User, Download, FileText } from "lucide-react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
+import { exportToPdf, exportToExcel } from "@/lib/export";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
