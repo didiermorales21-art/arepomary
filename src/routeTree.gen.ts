@@ -34,6 +34,7 @@ import { Route as AppLogisticsRouteImport } from './routes/app.logistics'
 import { Route as AppInvoicesRouteImport } from './routes/app.invoices'
 import { Route as AppInventoryRouteImport } from './routes/app.inventory'
 import { Route as AppCustomersRouteImport } from './routes/app.customers'
+import { Route as AppCostsRouteImport } from './routes/app.costs'
 import { Route as AppCashboxRouteImport } from './routes/app.cashbox'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
@@ -164,6 +165,11 @@ const AppCustomersRoute = AppCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCostsRoute = AppCostsRouteImport.update({
+  id: '/costs',
+  path: '/costs',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCashboxRoute = AppCashboxRouteImport.update({
   id: '/cashbox',
   path: '/cashbox',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
   '/app/cashbox': typeof AppCashboxRoute
+  '/app/costs': typeof AppCostsRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -225,6 +232,7 @@ export interface FileRoutesByTo {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
   '/app/cashbox': typeof AppCashboxRoute
+  '/app/costs': typeof AppCostsRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/audit': typeof AppAuditRoute
   '/app/cashbox': typeof AppCashboxRoute
+  '/app/costs': typeof AppCostsRoute
   '/app/customers': typeof AppCustomersRoute
   '/app/inventory': typeof AppInventoryRoute
   '/app/invoices': typeof AppInvoicesRoute
@@ -290,6 +299,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/audit'
     | '/app/cashbox'
+    | '/app/costs'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/audit'
     | '/app/cashbox'
+    | '/app/costs'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/audit'
     | '/app/cashbox'
+    | '/app/costs'
     | '/app/customers'
     | '/app/inventory'
     | '/app/invoices'
@@ -560,6 +572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/costs': {
+      id: '/app/costs'
+      path: '/costs'
+      fullPath: '/app/costs'
+      preLoaderRoute: typeof AppCostsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/cashbox': {
       id: '/app/cashbox'
       path: '/cashbox'
@@ -595,6 +614,7 @@ interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppAuditRoute: typeof AppAuditRoute
   AppCashboxRoute: typeof AppCashboxRoute
+  AppCostsRoute: typeof AppCostsRoute
   AppCustomersRoute: typeof AppCustomersRoute
   AppInventoryRoute: typeof AppInventoryRoute
   AppInvoicesRoute: typeof AppInvoicesRoute
@@ -620,6 +640,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
   AppAuditRoute: AppAuditRoute,
   AppCashboxRoute: AppCashboxRoute,
+  AppCostsRoute: AppCostsRoute,
   AppCustomersRoute: AppCustomersRoute,
   AppInventoryRoute: AppInventoryRoute,
   AppInvoicesRoute: AppInvoicesRoute,

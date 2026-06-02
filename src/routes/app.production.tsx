@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -7,24 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Wheat } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -45,6 +36,9 @@ const statusLabel: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+const fmt = (n: number) =>
+  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n || 0);
+
 function ProductionPage() {
   const qc = useQueryClient();
   const { user, hasRole } = useAuth();
@@ -56,7 +50,7 @@ function ProductionPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("production_batches" as any)
-        .select("id, batch_number, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, created_at, products(id, name, sku, image_url)")
+        .select("id, batch_number, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, variable_input_cost, variable_labor_cost, fixed_cost_allocated, total_cost, created_at, products(id, name, sku, image_url)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
@@ -71,43 +65,191 @@ function ProductionPage() {
     queryFn: async () =>
       (await supabase.from("warehouses" as any).select("id, name").order("name")).data ?? [],
   });
-
-  const createMutation = useMutation({
-    mutationFn: async (input: any) => {
-      const { error } = await supabase.from("production_batches" as any).insert({
-        product_id: input.product_id,
-        planned_quantity: Number(input.planned_quantity),
-        scheduled_for: input.scheduled_for || null,
-        unit_cost: Number(input.unit_cost || 0),
-        responsible_id: user?.id ?? null,
-        notes: input.notes || null,
-      });
+  const { data: costItems } = useQuery({
+    queryKey: ["cost_items"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cost_items" as any).select("*").eq("active", true)
+        .order("category").order("sort_order");
       if (error) throw error;
+      return (data as any[]) ?? [];
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["batches"] });
-      toast.success("Lote creado");
-      setOpen(false);
-    },
-    onError: (e: Error) => toast.error(e.message),
   });
 
+  const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
+  const labor  = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_labor"), [costItems]);
+  const fixed  = useMemo(() => (costItems ?? []).filter((c) => c.category === "fixed"), [costItems]);
+
+  async function computeFixedAllocation(producedQty: number, monthStart: Date) {
+    if (!producedQty || producedQty <= 0) return { perUnit: 0, monthlyFixed: 0, monthlyUnits: 0 };
+    const monthlyFixed = (fixed ?? []).reduce((s, c) => s + Number(c.unit_cost || 0), 0);
+    const end = new Date(monthStart);
+    end.setMonth(end.getMonth() + 1);
+    const { data, error } = await supabase
+      .from("production_batches" as any)
+      .select("produced_quantity")
+      .eq("status", "completed")
+      .gte("completed_at", monthStart.toISOString())
+      .lt("completed_at", end.toISOString());
+    if (error) throw error;
+    const otherUnits = (data ?? []).reduce((s: number, b: any) => s + Number(b.produced_quantity || 0), 0);
+    const totalUnits = otherUnits + producedQty;
+    return { perUnit: totalUnits ? monthlyFixed / totalUnits : 0, monthlyFixed, monthlyUnits: totalUnits };
+  }
+
+  function NewBatchForm() {
+    const [productId, setProductId] = useState("");
+    const [plannedQty, setPlannedQty] = useState<number>(1);
+    const [scheduled, setScheduled] = useState("");
+    const [notes, setNotes] = useState("");
+    const [inputQty, setInputQty] = useState<Record<string, number>>({});
+    const [laborQty, setLaborQty] = useState<Record<string, number>>({});
+
+    const inputCost = inputs.reduce((s, c) => s + (inputQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
+    const laborCost = labor.reduce((s, c) => s + (laborQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
+    const variableTotal = inputCost + laborCost;
+    const variablePerUnit = plannedQty > 0 ? variableTotal / plannedQty : 0;
+    const monthlyFixed = fixed.reduce((s, c) => s + Number(c.unit_cost || 0), 0);
+
+    const create = useMutation({
+      mutationFn: async () => {
+        if (!productId) throw new Error("Selecciona producto");
+        const { data: batch, error } = await supabase.from("production_batches" as any).insert({
+          product_id: productId,
+          planned_quantity: plannedQty,
+          scheduled_for: scheduled || null,
+          responsible_id: user?.id ?? null,
+          notes: notes || null,
+          variable_input_cost: inputCost,
+          variable_labor_cost: laborCost,
+        }).select("id").single();
+        if (error) throw error;
+        const rows = [
+          ...inputs.filter((c) => inputQty[c.id]).map((c) => ({
+            batch_id: (batch as any).id, cost_item_id: c.id,
+            quantity: inputQty[c.id], unit_cost_snapshot: Number(c.unit_cost || 0),
+          })),
+          ...labor.filter((c) => laborQty[c.id]).map((c) => ({
+            batch_id: (batch as any).id, cost_item_id: c.id,
+            quantity: laborQty[c.id], unit_cost_snapshot: Number(c.unit_cost || 0),
+          })),
+        ];
+        if (rows.length) {
+          const { error: e2 } = await supabase.from("production_costs" as any).insert(rows);
+          if (e2) throw e2;
+        }
+      },
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["batches"] });
+        toast.success("Lote creado");
+        setOpen(false);
+      },
+      onError: (e: Error) => toast.error(e.message),
+    });
+
+    return (
+      <form
+        className="space-y-4"
+        onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2 col-span-2">
+            <Label>Producto fabricado</Label>
+            <Select value={productId} onValueChange={setProductId}>
+              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+              <SelectContent>
+                {(products ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Cantidad de producto terminado</Label>
+            <Input type="number" min="1" value={plannedQty} onChange={(e) => setPlannedQty(Number(e.target.value))} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Programado para</Label>
+            <Input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="rounded-lg border p-3">
+          <h4 className="mb-2 font-medium">Insumos utilizados</h4>
+          {inputs.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No hay insumos parametrizados. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {inputs.map((c) => (
+                <div key={c.id} className="space-y-1">
+                  <Label className="text-xs">{c.name} ({c.unit}) · {fmt(c.unit_cost)}/{c.unit}</Label>
+                  <Input type="number" min="0" step="0.01"
+                    value={inputQty[c.id] ?? ""}
+                    onChange={(e) => setInputQty({ ...inputQty, [c.id]: Number(e.target.value) })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border p-3">
+          <h4 className="mb-2 font-medium">Mano de obra</h4>
+          {labor.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No hay perfiles de mano de obra. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {labor.map((c) => (
+                <div key={c.id} className="space-y-1">
+                  <Label className="text-xs">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
+                  <Input type="number" min="0" step="1"
+                    value={laborQty[c.id] ?? ""}
+                    onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <div className="grid grid-cols-2 gap-1">
+            <span>Costo insumos:</span><span className="text-right tabular-nums">{fmt(inputCost)}</span>
+            <span>Costo mano de obra:</span><span className="text-right tabular-nums">{fmt(laborCost)}</span>
+            <span>Costo variable / unidad:</span><span className="text-right tabular-nums font-medium">{fmt(variablePerUnit)}</span>
+            <span className="text-muted-foreground">Costos fijos mensuales:</span><span className="text-right tabular-nums text-muted-foreground">{fmt(monthlyFixed)}</span>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Los costos fijos se prorratean entre el total de unidades producidas del mes al completar el lote.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Notas</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button type="submit" disabled={create.isPending} className="bg-gradient-primary">Guardar</Button>
+        </DialogFooter>
+      </form>
+    );
+  }
+
   const completeBatch = useMutation({
-    mutationFn: async ({
-      batch,
-      producedQty,
-      warehouseId,
-    }: {
-      batch: any;
-      producedQty: number;
-      warehouseId: string;
-    }) => {
+    mutationFn: async ({ batch, producedQty, warehouseId }: { batch: any; producedQty: number; warehouseId: string }) => {
+      const monthRef = new Date(batch.scheduled_for || batch.created_at || Date.now());
+      const monthStart = new Date(monthRef.getFullYear(), monthRef.getMonth(), 1);
+      const { perUnit } = await computeFixedAllocation(producedQty, monthStart);
+      const fixedAllocated = perUnit * producedQty;
+      const totalVariable = Number(batch.variable_input_cost || 0) + Number(batch.variable_labor_cost || 0);
+      const totalCost = totalVariable + fixedAllocated;
+      const unitCost = producedQty > 0 ? totalCost / producedQty : 0;
+
       const { error: updErr } = await supabase
         .from("production_batches" as any)
         .update({
           status: "completed",
           produced_quantity: producedQty,
           completed_at: new Date().toISOString(),
+          fixed_cost_allocated: fixedAllocated,
+          total_cost: totalCost,
+          unit_cost: unitCost,
         })
         .eq("id", batch.id);
       if (updErr) throw updErr;
@@ -116,7 +258,7 @@ function ProductionPage() {
         warehouse_id: warehouseId,
         type: "production",
         quantity: producedQty,
-        unit_cost: Number(batch.unit_cost) || 0,
+        unit_cost: unitCost,
         reference: `Lote #${batch.batch_number}`,
         recorded_by: user?.id ?? null,
       });
@@ -135,6 +277,8 @@ function ProductionPage() {
     const [qty, setQty] = useState<number>(Number(batch.planned_quantity));
     const [wh, setWh] = useState<string>("");
     const [openD, setOpenD] = useState(false);
+    const variable = Number(batch.variable_input_cost || 0) + Number(batch.variable_labor_cost || 0);
+    const variablePerUnit = qty > 0 ? variable / qty : 0;
     return (
       <Dialog open={openD} onOpenChange={setOpenD}>
         <DialogTrigger asChild>
@@ -152,30 +296,25 @@ function ProductionPage() {
             <div className="space-y-2">
               <Label>Almacén destino</Label>
               <Select value={wh} onValueChange={setWh}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona almacén" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecciona almacén" /></SelectTrigger>
                 <SelectContent>
-                  {(warehouses ?? []).map((w: any) => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                  ))}
+                  {(warehouses ?? []).map((w: any) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="rounded border bg-muted/30 p-2 text-xs">
+              Variable total: <b>{fmt(variable)}</b> · Variable/u: <b>{fmt(variablePerUnit)}</b>
+              <div className="text-muted-foreground">Se sumarán los costos fijos mensuales prorrateados al confirmar.</div>
             </div>
           </div>
           <DialogFooter>
             <Button
               onClick={() => {
                 if (!wh) return toast.error("Selecciona almacén");
-                completeBatch.mutate(
-                  { batch, producedQty: qty, warehouseId: wh },
-                  { onSuccess: () => setOpenD(false) },
-                );
+                completeBatch.mutate({ batch, producedQty: qty, warehouseId: wh }, { onSuccess: () => setOpenD(false) });
               }}
               className="bg-gradient-primary"
-            >
-              Confirmar
-            </Button>
+            >Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -186,7 +325,7 @@ function ProductionPage() {
     <>
       <PageHeader
         title="Producción"
-        description="Planifica y registra lotes de producción."
+        description="Planifica y registra lotes con costeo automático."
         actions={
           canManage && (
             <Dialog open={open} onOpenChange={setOpen}>
@@ -195,55 +334,11 @@ function ProductionPage() {
                   <Plus className="mr-1 h-4 w-4" /> Nuevo lote
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle className="font-display">Nuevo lote</DialogTitle>
+                  <DialogTitle className="font-display">Nuevo lote de producción</DialogTitle>
                 </DialogHeader>
-                <form
-                  className="space-y-3"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const fd = new FormData(e.currentTarget);
-                    createMutation.mutate(Object.fromEntries(fd.entries()));
-                  }}
-                >
-                  <div className="space-y-2">
-                    <Label>Producto</Label>
-                    <Select name="product_id" required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(products ?? []).map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Cantidad planificada</Label>
-                      <Input name="planned_quantity" type="number" min="1" required defaultValue={1} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Costo unitario</Label>
-                      <Input name="unit_cost" type="number" min="0" defaultValue={0} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Programado para</Label>
-                    <Input name="scheduled_for" type="date" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Notas</Label>
-                    <Textarea name="notes" />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-primary">
-                      Guardar
-                    </Button>
-                  </DialogFooter>
-                </form>
+                <NewBatchForm />
               </DialogContent>
             </Dialog>
           )
@@ -258,15 +353,17 @@ function ProductionPage() {
                 <TableHead>Producto</TableHead>
                 <TableHead>Programado</TableHead>
                 <TableHead className="text-right">Plan / Prod.</TableHead>
+                <TableHead className="text-right">Costo unitario</TableHead>
+                <TableHead className="text-right">Costo total</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-[140px]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
               ) : (batches ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   <Wheat className="mx-auto mb-2 h-6 w-6 opacity-50" />
                   Aún no hay lotes.
                 </TableCell></TableRow>
@@ -286,6 +383,8 @@ function ProductionPage() {
                     </TableCell>
                     <TableCell>{b.scheduled_for ? new Date(b.scheduled_for).toLocaleDateString("es-CO") : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.planned_quantity} / {b.produced_quantity}</TableCell>
+                    <TableCell className="text-right tabular-nums">{b.status === "completed" ? fmt(Number(b.unit_cost)) : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{b.status === "completed" ? fmt(Number(b.total_cost)) : "—"}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[b.status] ?? "outline"}>{statusLabel[b.status] ?? b.status}</Badge>
                     </TableCell>

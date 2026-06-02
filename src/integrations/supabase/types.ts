@@ -236,6 +236,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_items: {
+        Row: {
+          active: boolean
+          category: Database["public"]["Enums"]["cost_category"]
+          created_at: string
+          id: string
+          is_system: boolean
+          key: string
+          name: string
+          sort_order: number
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: Database["public"]["Enums"]["cost_category"]
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: Database["public"]["Enums"]["cost_category"]
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null
@@ -816,6 +858,7 @@ export type Database = {
           batch_number: number
           completed_at: string | null
           created_at: string
+          fixed_cost_allocated: number
           id: string
           notes: string | null
           planned_quantity: number
@@ -825,13 +868,17 @@ export type Database = {
           scheduled_for: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["batch_status"]
+          total_cost: number
           unit_cost: number
           updated_at: string
+          variable_input_cost: number
+          variable_labor_cost: number
         }
         Insert: {
           batch_number?: number
           completed_at?: string | null
           created_at?: string
+          fixed_cost_allocated?: number
           id?: string
           notes?: string | null
           planned_quantity: number
@@ -841,13 +888,17 @@ export type Database = {
           scheduled_for?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["batch_status"]
+          total_cost?: number
           unit_cost?: number
           updated_at?: string
+          variable_input_cost?: number
+          variable_labor_cost?: number
         }
         Update: {
           batch_number?: number
           completed_at?: string | null
           created_at?: string
+          fixed_cost_allocated?: number
           id?: string
           notes?: string | null
           planned_quantity?: number
@@ -857,8 +908,11 @@ export type Database = {
           scheduled_for?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["batch_status"]
+          total_cost?: number
           unit_cost?: number
           updated_at?: string
+          variable_input_cost?: number
+          variable_labor_cost?: number
         }
         Relationships: [
           {
@@ -866,6 +920,51 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_costs: {
+        Row: {
+          batch_id: string
+          cost_item_id: string
+          created_at: string
+          id: string
+          line_total: number | null
+          quantity: number
+          unit_cost_snapshot: number
+        }
+        Insert: {
+          batch_id: string
+          cost_item_id: string
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          quantity?: number
+          unit_cost_snapshot?: number
+        }
+        Update: {
+          batch_id?: string
+          cost_item_id?: string
+          created_at?: string
+          id?: string
+          line_total?: number | null
+          quantity?: number
+          unit_cost_snapshot?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_costs_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_costs_cost_item_id_fkey"
+            columns: ["cost_item_id"]
+            isOneToOne: false
+            referencedRelation: "cost_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1324,6 +1423,7 @@ export type Database = {
         | "operations"
       batch_status: "planned" | "in_progress" | "completed" | "cancelled"
       bill_status: "draft" | "received" | "paid" | "overdue" | "cancelled"
+      cost_category: "variable_input" | "variable_labor" | "fixed"
       customer_status: "active" | "inactive" | "prospect"
       customer_type: "standard" | "wholesale"
       invoice_status: "draft" | "issued" | "paid" | "overdue" | "cancelled"
@@ -1488,6 +1588,7 @@ export const Constants = {
       ],
       batch_status: ["planned", "in_progress", "completed", "cancelled"],
       bill_status: ["draft", "received", "paid", "overdue", "cancelled"],
+      cost_category: ["variable_input", "variable_labor", "fixed"],
       customer_status: ["active", "inactive", "prospect"],
       customer_type: ["standard", "wholesale"],
       invoice_status: ["draft", "issued", "paid", "overdue", "cancelled"],
