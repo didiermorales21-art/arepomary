@@ -334,8 +334,8 @@ function ProductionPage() {
                   <Plus className="mr-1 h-4 w-4" /> Nuevo lote
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4">
+                <DialogHeader className="pb-2">
                   <DialogTitle className="font-display">Nuevo lote de producción</DialogTitle>
                 </DialogHeader>
                 <NewBatchForm />
