@@ -21,6 +21,7 @@ import {
   Wallet,
   FileText,
   Building2,
+  Calculator,
 } from "lucide-react";
 import {
   Sidebar,
