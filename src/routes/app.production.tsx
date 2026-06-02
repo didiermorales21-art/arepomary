@@ -149,39 +149,39 @@ function ProductionPage() {
 
     return (
       <form
-        className="space-y-4"
+        className="space-y-3"
         onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
       >
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2 col-span-2">
-            <Label>Producto fabricado</Label>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1 col-span-2">
+            <Label className="text-xs">Producto fabricado</Label>
             <Select value={productId} onValueChange={setProductId}>
-              <SelectTrigger><SelectValue placeholder="Selecciona" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona" /></SelectTrigger>
               <SelectContent>
                 {(products ?? []).map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Cantidad de producto terminado</Label>
-            <Input type="number" min="1" value={plannedQty} onChange={(e) => setPlannedQty(Number(e.target.value))} required />
+          <div className="space-y-1">
+            <Label className="text-xs">Cantidad terminado</Label>
+            <Input type="number" min="1" className="h-8 text-sm" value={plannedQty} onChange={(e) => setPlannedQty(Number(e.target.value))} required />
           </div>
-          <div className="space-y-2">
-            <Label>Programado para</Label>
-            <Input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)} />
+          <div className="space-y-1">
+            <Label className="text-xs">Programado para</Label>
+            <Input type="date" className="h-8 text-sm" value={scheduled} onChange={(e) => setScheduled(e.target.value)} />
           </div>
         </div>
 
-        <div className="rounded-lg border p-3">
-          <h4 className="mb-2 font-medium">Insumos utilizados</h4>
+        <div className="rounded-md border p-2">
+          <h4 className="mb-1.5 text-sm font-medium">Insumos utilizados</h4>
           {inputs.length === 0 ? (
             <p className="text-xs text-muted-foreground">No hay insumos parametrizados. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {inputs.map((c) => (
-                <div key={c.id} className="space-y-1">
-                  <Label className="text-xs">{c.name} ({c.unit}) · {fmt(c.unit_cost)}/{c.unit}</Label>
-                  <Input type="number" min="0" step="0.01"
+                <div key={c.id} className="space-y-0.5">
+                  <Label className="text-[11px] leading-tight block truncate">{c.name} ({c.unit}) · {fmt(c.unit_cost)}/{c.unit}</Label>
+                  <Input type="number" min="0" step="0.01" className="h-7 text-sm"
                     value={inputQty[c.id] ?? ""}
                     onChange={(e) => setInputQty({ ...inputQty, [c.id]: Number(e.target.value) })}
                   />
@@ -191,16 +191,16 @@ function ProductionPage() {
           )}
         </div>
 
-        <div className="rounded-lg border p-3">
-          <h4 className="mb-2 font-medium">Mano de obra</h4>
+        <div className="rounded-md border p-2">
+          <h4 className="mb-1.5 text-sm font-medium">Mano de obra</h4>
           {labor.length === 0 ? (
             <p className="text-xs text-muted-foreground">No hay perfiles de mano de obra. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {labor.map((c) => (
-                <div key={c.id} className="space-y-1">
-                  <Label className="text-xs">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
-                  <Input type="number" min="0" step="1"
+                <div key={c.id} className="space-y-0.5">
+                  <Label className="text-[11px] leading-tight block truncate">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
+                  <Input type="number" min="0" step="1" className="h-7 text-sm"
                     value={laborQty[c.id] ?? ""}
                     onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
                   />
@@ -210,22 +210,22 @@ function ProductionPage() {
           )}
         </div>
 
-        <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-          <div className="grid grid-cols-2 gap-1">
+        <div className="rounded-md border bg-muted/30 p-2 text-xs">
+          <div className="grid grid-cols-2 gap-y-0.5">
             <span>Costo insumos:</span><span className="text-right tabular-nums">{fmt(inputCost)}</span>
             <span>Costo mano de obra:</span><span className="text-right tabular-nums">{fmt(laborCost)}</span>
             <span>Costo variable / unidad:</span><span className="text-right tabular-nums font-medium">{fmt(variablePerUnit)}</span>
             <span className="text-muted-foreground">Costos fijos mensuales:</span><span className="text-right tabular-nums text-muted-foreground">{fmt(monthlyFixed)}</span>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Los costos fijos se prorratean entre el total de unidades producidas del mes al completar el lote.</p>
+          <p className="mt-1 text-[11px] text-muted-foreground leading-tight">Los costos fijos se prorratean entre el total de unidades producidas del mes al completar el lote.</p>
         </div>
 
-        <div className="space-y-2">
-          <Label>Notas</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <div className="space-y-1">
+          <Label className="text-xs">Notas</Label>
+          <Textarea className="min-h-[60px] text-sm" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
-        <DialogFooter>
-          <Button type="submit" disabled={create.isPending} className="bg-gradient-primary">Guardar</Button>
+        <DialogFooter className="pt-1">
+          <Button type="submit" disabled={create.isPending} className="bg-gradient-primary h-8 text-sm">Guardar</Button>
         </DialogFooter>
       </form>
     );
@@ -334,8 +334,8 @@ function ProductionPage() {
                   <Plus className="mr-1 h-4 w-4" /> Nuevo lote
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4">
+                <DialogHeader className="pb-2">
                   <DialogTitle className="font-display">Nuevo lote de producción</DialogTitle>
                 </DialogHeader>
                 <NewBatchForm />
