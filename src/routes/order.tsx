@@ -38,6 +38,7 @@ function GuestOrderPage() {
   const [document_id, setDocumentId] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [neighborhoodId, setNeighborhoodId] = useState("");
   const [notes, setNotes] = useState("");
@@ -96,6 +97,7 @@ function GuestOrderPage() {
       if (row) {
         setName(row.name ?? "");
         setPhone(row.phone ?? "");
+        setEmail(row.email ?? "");
         setAddress(row.address ?? "");
         if (row.neighborhood_id) setNeighborhoodId(row.neighborhood_id);
         if (row.seller_id) {
@@ -170,6 +172,7 @@ function GuestOrderPage() {
       })),
       _seller_id: sellerMode === "referred" ? sellerId : COMPANY_SELLER_ID,
       _delivery_date: deliveryDate || null,
+      _email: email || null,
     } as any);
     setSubmitting(false);
     if (error) {
@@ -230,6 +233,10 @@ function GuestOrderPage() {
               <div className="space-y-2">
                 <Label htmlFor="address">Dirección</Label>
                 <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (opcional)</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@correo.com" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="neighborhood">Barrio</Label>

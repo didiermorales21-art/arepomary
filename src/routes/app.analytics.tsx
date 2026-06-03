@@ -20,9 +20,21 @@ function AnalyticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("total, paid, status, created_at, customer_id, customers(name)")
+        .select("total, status, created_at, customer_id, customers(name)")
         .order("created_at", { ascending: false })
         .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: invoiceAgg } = useQuery({
+    queryKey: ["analytics-invoices"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("total, paid, balance, status")
+        .neq("status", "cancelled");
       if (error) throw error;
       return data ?? [];
     },
@@ -52,10 +64,10 @@ function AnalyticsPage() {
     },
   });
 
-  // KPIs
-  const totalRevenue = (sales ?? []).reduce((a, s) => a + Number(s.total ?? 0), 0);
-  const totalPaid = (sales ?? []).reduce((a, s) => a + Number(s.paid ?? 0), 0);
-  const receivables = totalRevenue - totalPaid;
+  // KPIs (revenue from invoices for actual billed + paid)
+  const totalRevenue = (invoiceAgg ?? []).reduce((a, i) => a + Number(i.total ?? 0), 0);
+  const totalPaid = (invoiceAgg ?? []).reduce((a, i) => a + Number(i.paid ?? 0), 0);
+  const receivables = (invoiceAgg ?? []).reduce((a, i) => a + Number(i.balance ?? 0), 0);
   const collectionRate = totalRevenue > 0 ? (totalPaid / totalRevenue) * 100 : 0;
 
   // Sales by status
