@@ -284,6 +284,7 @@ export type Database = {
           created_at: string
           customer_type: Database["public"]["Enums"]["customer_type"]
           document_id: string | null
+          email: string | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -303,6 +304,7 @@ export type Database = {
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
+          email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -322,6 +324,7 @@ export type Database = {
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
+          email?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -390,6 +393,7 @@ export type Database = {
           min_stock: number
           product_id: string
           quantity: number
+          reserved_quantity: number
           updated_at: string
           warehouse_id: string
         }
@@ -399,6 +403,7 @@ export type Database = {
           min_stock?: number
           product_id: string
           quantity?: number
+          reserved_quantity?: number
           updated_at?: string
           warehouse_id: string
         }
@@ -408,6 +413,7 @@ export type Database = {
           min_stock?: number
           product_id?: string
           quantity?: number
+          reserved_quantity?: number
           updated_at?: string
           warehouse_id?: string
         }
@@ -1229,6 +1235,7 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          cost_item_id: string | null
           created_at: string
           email: string | null
           id: string
@@ -1241,6 +1248,7 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string | null
+          cost_item_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1253,6 +1261,7 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string | null
+          cost_item_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1262,7 +1271,15 @@ export type Database = {
           tax_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_cost_item_id_fkey"
+            columns: ["cost_item_id"]
+            isOneToOne: false
+            referencedRelation: "cost_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1380,6 +1397,7 @@ export type Database = {
             }
             Returns: string
           }
+      default_warehouse_id: { Args: never; Returns: string }
       get_delivery_days: { Args: never; Returns: number[] }
       has_role: {
         Args: {
