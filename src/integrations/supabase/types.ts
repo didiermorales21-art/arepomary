@@ -1417,6 +1417,7 @@ export type Database = {
         Args: { _document_id: string }
         Returns: {
           address: string
+          email: string
           name: string
           neighborhood_id: string
           phone: string
