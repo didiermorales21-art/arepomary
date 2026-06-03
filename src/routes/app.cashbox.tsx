@@ -45,13 +45,13 @@ function CashboxPage() {
       const toIso = new Date(to + "T23:59:59").toISOString();
       const { data: pays, error } = await supabase
         .from("invoice_payments")
-        .select("amount, method, paid_at")
+        .select("amount, method, paid_at, invoices(customers(name))")
         .gte("paid_at", fromIso)
         .lte("paid_at", toIso)
         .order("paid_at", { ascending: false });
       if (error) throw error;
       const totals: Record<string, number> = {};
-      (pays ?? []).forEach((p) => {
+      (pays ?? []).forEach((p: any) => {
         totals[p.method] = (totals[p.method] ?? 0) + Number(p.amount || 0);
       });
       return { rows: pays ?? [], totals };
@@ -126,19 +126,21 @@ function CashboxPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Fecha</TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Método</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={3} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
                 ) : (data?.rows ?? []).length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="py-10 text-center text-sm text-muted-foreground">Sin pagos en el rango seleccionado.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Sin pagos en el rango seleccionado.</TableCell></TableRow>
                 ) : (
-                  (data?.rows ?? []).map((p, idx) => (
+                  (data?.rows ?? []).map((p: any, idx: number) => (
                     <TableRow key={idx}>
                       <TableCell>{new Date(p.paid_at).toLocaleString("es-CO")}</TableCell>
+                      <TableCell className="font-medium">{p.invoices?.customers?.name ?? "—"}</TableCell>
                       <TableCell>{METHOD_LABELS[p.method] ?? p.method}</TableCell>
                       <TableCell className="text-right">{fmtMoney(Number(p.amount))}</TableCell>
                     </TableRow>
