@@ -16,7 +16,7 @@ function InventoryPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inventory" as any)
-        .select("id, quantity, min_stock, max_stock, updated_at, products(name, sku, unit, image_url), warehouses(name)")
+        .select("id, quantity, reserved_quantity, min_stock, max_stock, updated_at, products(name, sku, unit, image_url), warehouses(name)")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
@@ -25,7 +25,10 @@ function InventoryPage() {
 
   return (
     <>
-      <PageHeader title="Inventario" description="Existencias actuales por producto y almacén." />
+      <PageHeader
+        title="Inventario"
+        description="Real = unidades físicas. Reservado = pedidos pendientes. Disponible = lo que se puede vender o reservar."
+      />
       <div className="p-6">
         <div className="rounded-xl border bg-card shadow-card">
           <Table>
@@ -34,22 +37,27 @@ function InventoryPage() {
                 <TableHead>Producto</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead>Almacén</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
+                <TableHead className="text-right">Real</TableHead>
+                <TableHead className="text-right">Reservado</TableHead>
+                <TableHead className="text-right">Disponible</TableHead>
                 <TableHead className="text-right">Mín.</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
               ) : (inv ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   <Boxes className="mx-auto mb-2 h-6 w-6 opacity-50" />
                   Sin movimientos de inventario aún.
                 </TableCell></TableRow>
               ) : (
                 (inv ?? []).map((r: any) => {
-                  const low = Number(r.quantity) <= Number(r.min_stock);
+                  const qty = Number(r.quantity);
+                  const reserved = Number(r.reserved_quantity ?? 0);
+                  const available = qty - reserved;
+                  const low = qty <= Number(r.min_stock);
                   return (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">
@@ -64,7 +72,9 @@ function InventoryPage() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{r.products?.sku ?? "—"}</TableCell>
                       <TableCell>{r.warehouses?.name ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{Number(r.quantity)} {r.products?.unit}</TableCell>
+                      <TableCell className="text-right tabular-nums">{qty}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">{reserved}</TableCell>
+                      <TableCell className={`text-right tabular-nums font-medium ${available <= 0 ? "text-destructive" : ""}`}>{available}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{Number(r.min_stock)}</TableCell>
                       <TableCell>
                         {low ? (

@@ -11,15 +11,14 @@ export const Route = createFileRoute("/app/receivables")({
   component: ReceivablesPage,
 });
 
-interface Row {
-  customer_id: string;
-  name: string;
-  current: number;
-  d30: number;
-  d60: number;
-  d90: number;
-  d90plus: number;
-  total: number;
+function fmtDate(d: string | null) {
+  if (!d) return "—";
+  return new Date(d).toLocaleDateString("es-CO");
+}
+
+function daysSince(d: string | null) {
+  if (!d) return null;
+  return Math.max(0, Math.floor((Date.now() - new Date(d).getTime()) / 86400000));
 }
 
 function ReceivablesPage() {
@@ -33,48 +32,31 @@ function ReceivablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invoices")
-        .select("customer_id, due_date, balance")
+        .select("id, invoice_number, issued_at, due_date, balance, customers(name)")
         .gt("balance", 0)
-        .neq("status", "cancelled");
+        .neq("status", "cancelled")
+        .order("issued_at", { ascending: true });
       if (error) throw error;
-      const ids = Array.from(new Set((data ?? []).map((i) => i.customer_id)));
-      const { data: customers } = ids.length
-        ? await supabase.from("customers").select("id, name").in("id", ids)
-        : { data: [] };
-      const nameMap = new Map((customers ?? []).map((c) => [c.id, c.name]));
-      const today = new Date();
-      const buckets = new Map<string, Row>();
-      (data ?? []).forEach((inv) => {
-        const id = inv.customer_id;
-        const bal = Number(inv.balance || 0);
-        const due = inv.due_date ? new Date(inv.due_date) : null;
-        const days = due ? Math.floor((today.getTime() - due.getTime()) / 86400000) : 0;
-        const r = buckets.get(id) ?? { customer_id: id, name: nameMap.get(id) ?? "—", current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0, total: 0 };
-        if (days <= 0) r.current += bal;
-        else if (days <= 30) r.d30 += bal;
-        else if (days <= 60) r.d60 += bal;
-        else if (days <= 90) r.d90 += bal;
-        else r.d90plus += bal;
-        r.total += bal;
-        buckets.set(id, r);
-      });
-      return Array.from(buckets.values()).sort((a, b) => b.total - a.total);
+      return data ?? [];
     },
   });
 
-  const totals = (data ?? []).reduce(
-    (a, r) => ({ current: a.current + r.current, d30: a.d30 + r.d30, d60: a.d60 + r.d60, d90: a.d90 + r.d90, d90plus: a.d90plus + r.d90plus, total: a.total + r.total }),
-    { current: 0, d30: 0, d60: 0, d90: 0, d90plus: 0, total: 0 },
-  );
+  const total = (data ?? []).reduce((a, r: any) => a + Number(r.balance || 0), 0);
 
-  const cols = ["Cliente", "Al día", "1-30", "31-60", "61-90", "+90", "Total"];
-  const rows = (data ?? []).map((r) => [r.name, r.current, r.d30, r.d60, r.d90, r.d90plus, r.total]);
+  const cols = ["#", "Cliente", "Pendiente desde", "Días", "Saldo"];
+  const rows = (data ?? []).map((r: any) => [
+    `#${r.invoice_number}`,
+    r.customers?.name ?? "—",
+    fmtDate(r.issued_at),
+    daysSince(r.issued_at) ?? "",
+    Number(r.balance || 0),
+  ]);
 
   return (
     <>
       <PageHeader
         title="Cuentas por cobrar"
-        description="Saldos pendientes por cliente con análisis de antigüedad."
+        description="Facturas con saldo pendiente y la fecha desde la que están sin pagar."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => exportToPdf({ title: "Cartera por cobrar", columns: cols, rows, company, filename: "cartera.pdf" })}>
@@ -91,44 +73,38 @@ function ReceivablesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>#</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Al día</TableHead>
-                <TableHead className="text-right">1-30</TableHead>
-                <TableHead className="text-right">31-60</TableHead>
-                <TableHead className="text-right">61-90</TableHead>
-                <TableHead className="text-right">+90</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableHead>Pendiente desde</TableHead>
+                <TableHead className="text-right">Días</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
               ) : (data ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">No hay cartera pendiente.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">No hay cartera pendiente.</TableCell></TableRow>
               ) : (
-                (data ?? []).map((r) => (
-                  <TableRow key={r.customer_id}>
-                    <TableCell className="font-medium">{r.name}</TableCell>
-                    <TableCell className="text-right">{fmtMoney(r.current)}</TableCell>
-                    <TableCell className="text-right">{fmtMoney(r.d30)}</TableCell>
-                    <TableCell className="text-right">{fmtMoney(r.d60)}</TableCell>
-                    <TableCell className="text-right">{fmtMoney(r.d90)}</TableCell>
-                    <TableCell className="text-right text-destructive">{fmtMoney(r.d90plus)}</TableCell>
-                    <TableCell className="text-right font-semibold">{fmtMoney(r.total)}</TableCell>
-                  </TableRow>
-                ))
+                (data ?? []).map((r: any) => {
+                  const days = daysSince(r.issued_at) ?? 0;
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-mono text-xs">#{r.invoice_number}</TableCell>
+                      <TableCell className="font-medium">{r.customers?.name ?? "—"}</TableCell>
+                      <TableCell>{fmtDate(r.issued_at)}</TableCell>
+                      <TableCell className={`text-right tabular-nums ${days > 30 ? "text-destructive font-medium" : ""}`}>{days}</TableCell>
+                      <TableCell className="text-right font-semibold">{fmtMoney(Number(r.balance))}</TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
             {(data ?? []).length > 0 && (
               <TableFooter>
                 <TableRow>
-                  <TableCell className="font-semibold">Totales</TableCell>
-                  <TableCell className="text-right">{fmtMoney(totals.current)}</TableCell>
-                  <TableCell className="text-right">{fmtMoney(totals.d30)}</TableCell>
-                  <TableCell className="text-right">{fmtMoney(totals.d60)}</TableCell>
-                  <TableCell className="text-right">{fmtMoney(totals.d90)}</TableCell>
-                  <TableCell className="text-right">{fmtMoney(totals.d90plus)}</TableCell>
-                  <TableCell className="text-right font-bold">{fmtMoney(totals.total)}</TableCell>
+                  <TableCell colSpan={4} className="font-semibold">Total pendiente</TableCell>
+                  <TableCell className="text-right font-bold">{fmtMoney(total)}</TableCell>
                 </TableRow>
               </TableFooter>
             )}

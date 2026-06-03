@@ -75,7 +75,7 @@ function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, first_name, last_name, phone, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
+        .select("id, name, first_name, last_name, phone, email, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -107,6 +107,7 @@ function CustomersPage() {
       last_name: string;
       document_id: string;
       phone: string;
+      email: string;
       address: string;
       neighborhood_id: string | null;
       notes: string;
@@ -127,6 +128,7 @@ function CustomersPage() {
         last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
+        email: input.email || null,
         address: input.address,
         neighborhood_id: input.neighborhood_id,
         notes: input.notes,
@@ -151,6 +153,7 @@ function CustomersPage() {
       last_name: string;
       document_id: string;
       phone: string;
+      email: string;
       address: string;
       neighborhood_id: string | null;
       notes: string;
@@ -170,6 +173,7 @@ function CustomersPage() {
         last_name: input.last_name || null,
         document_id: input.document_id || null,
         phone: input.phone,
+        email: input.email || null,
         address: input.address,
         neighborhood_id: input.neighborhood_id,
         notes: input.notes,
@@ -230,6 +234,7 @@ function CustomersPage() {
                     last_name: String(fd.get("last_name") || ""),
                     document_id: String(fd.get("document_id") || ""),
                     phone,
+                    email: String(fd.get("email") || ""),
                     address: String(fd.get("address") || ""),
                     neighborhood_id: (fd.get("neighborhood_id") as string) || null,
                     notes: String(fd.get("notes") || ""),
@@ -264,6 +269,10 @@ function CustomersPage() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" name="email" type="email" />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="address">Dirección</Label>
                   <Input id="address" name="address" />
@@ -406,6 +415,7 @@ function CustomersPage() {
                   last_name: String(fd.get("last_name") || ""),
                   document_id: String(fd.get("document_id") || ""),
                   phone: editPhone,
+                  email: String(fd.get("email") || ""),
                   address: String(fd.get("address") || ""),
                   neighborhood_id: editNeighborhoodId || null,
                   notes: String(fd.get("notes") || ""),
@@ -442,6 +452,10 @@ function CustomersPage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="e_email">Email</Label>
+                <Input id="e_email" name="email" type="email" defaultValue={editing.email || ""} />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="e_address">Dirección</Label>
                 <Input id="e_address" name="address" defaultValue={editing.address || ""} />

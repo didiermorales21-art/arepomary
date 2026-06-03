@@ -22,12 +22,6 @@ export const Route = createFileRoute("/app/costs")({
   component: CostsPage,
 });
 
-const categoryLabel: Record<string, string> = {
-  variable_input: "Insumo variable",
-  variable_labor: "Mano de obra variable",
-  fixed: "Costo fijo (mensual)",
-};
-
 function CostsPage() {
   const qc = useQueryClient();
   const { hasRole } = useAuth();
@@ -47,17 +41,15 @@ function CostsPage() {
     },
   });
 
-  const updateCost = useMutation({
-    mutationFn: async ({ id, unit_cost }: { id: string; unit_cost: number }) => {
-      const { error } = await supabase
-        .from("cost_items" as any)
-        .update({ unit_cost })
-        .eq("id", id);
+  const updateItem = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
+      const { error } = await supabase.from("cost_items" as any).update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cost_items"] });
-      toast.success("Costo actualizado");
+      qc.invalidateQueries({ queryKey: ["cost-items-inputs"] });
+      toast.success("Guardado");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -76,6 +68,7 @@ function CostsPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["cost_items"] });
+      qc.invalidateQueries({ queryKey: ["cost-items-inputs"] });
       toast.success("Costo creado");
       setOpen(false);
     },
@@ -95,12 +88,36 @@ function CostsPage() {
   });
 
   function Row({ it }: { it: any }) {
+    const [name, setName] = useState<string>(it.name);
+    const [unit, setUnit] = useState<string>(it.unit);
     const [val, setVal] = useState<string>(String(it.unit_cost));
-    const dirty = Number(val) !== Number(it.unit_cost);
+    const editableMeta = canManage && it.category === "variable_input";
+    const dirty = Number(val) !== Number(it.unit_cost) || (editableMeta && (name !== it.name || unit !== it.unit));
+    const save = () => {
+      const patch: Record<string, unknown> = { unit_cost: Number(val) };
+      if (editableMeta) {
+        if (!name.trim()) return toast.error("El nombre no puede estar vacío");
+        patch.name = name.trim();
+        patch.unit = unit.trim() || "unit";
+      }
+      updateItem.mutate({ id: it.id, patch });
+    };
     return (
       <TableRow>
-        <TableCell className="font-medium">{it.name} {it.is_system && <Badge variant="outline" className="ml-1">sistema</Badge>}</TableCell>
-        <TableCell className="text-muted-foreground">{it.unit}</TableCell>
+        <TableCell className="font-medium">
+          {editableMeta ? (
+            <Input className="h-8" value={name} onChange={(e) => setName(e.target.value)} />
+          ) : (
+            <>{it.name} {it.is_system && <Badge variant="outline" className="ml-1">sistema</Badge>}</>
+          )}
+        </TableCell>
+        <TableCell className="text-muted-foreground">
+          {editableMeta ? (
+            <Input className="h-8 w-28" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="g, kg…" />
+          ) : (
+            it.unit
+          )}
+        </TableCell>
         <TableCell className="text-right">
           <Input
             className="ml-auto h-8 w-32 text-right tabular-nums"
@@ -115,9 +132,7 @@ function CostsPage() {
         <TableCell className="w-[200px]">
           <div className="flex justify-end gap-2">
             {canManage && dirty && (
-              <Button size="sm" onClick={() => updateCost.mutate({ id: it.id, unit_cost: Number(val) })}>
-                Guardar
-              </Button>
+              <Button size="sm" onClick={save}>Guardar</Button>
             )}
             {canManage && !it.is_system && (
               <Button size="sm" variant="ghost" onClick={() => deleteItem.mutate(it.id)}>
@@ -131,7 +146,7 @@ function CostsPage() {
   }
 
   const groups: { key: string; title: string; help?: string }[] = [
-    { key: "variable_input", title: "Insumos variables", help: "Costo por unidad de medida del insumo." },
+    { key: "variable_input", title: "Insumos variables", help: "Edita nombre, unidad y costo unitario. Se usan al registrar lotes de producción." },
     { key: "variable_labor", title: "Mano de obra variable", help: "Costo por persona en cada lote de producción." },
     { key: "fixed", title: "Costos fijos (mensuales)", help: "Se prorratean entre las unidades producidas en el mes del lote." },
   ];
@@ -167,7 +182,7 @@ function CostsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Categoría</Label>
-                    <Select name="category" defaultValue="fixed">
+                    <Select name="category" defaultValue="variable_input">
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="variable_input">Insumo variable</SelectItem>
