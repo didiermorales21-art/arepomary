@@ -100,19 +100,21 @@ function PayablesPage() {
   });
 
   const addPayment = useMutation({
-    mutationFn: async (input: { amount: number; method: string; reference: string }) => {
+    mutationFn: async (input: { amount: number; method: string; reference: string; password: string }) => {
       if (!payFor) throw new Error("Sin factura");
-      const { error } = await supabase.from("bill_payments").insert({
-        bill_id: payFor.id,
-        amount: input.amount,
-        method: input.method as "cash",
-        reference: input.reference || null,
+      const { error } = await (supabase as any).rpc("add_bill_payment", {
+        _bill_id: payFor.id,
+        _amount: input.amount,
+        _method: input.method,
+        _reference: input.reference,
+        _password: input.password,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bills"] });
-      toast.success("Pago registrado");
+      qc.invalidateQueries({ queryKey: ["cashbox"] });
+      toast.success("Pago registrado y reflejado en caja");
       setPayFor(null);
     },
     onError: (e: Error) => toast.error(e.message),
