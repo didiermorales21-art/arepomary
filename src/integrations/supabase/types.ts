@@ -188,6 +188,42 @@ export type Database = {
           },
         ]
       }
+      cash_movements: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["cash_movement_category"]
+          created_at: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          occurred_at: string
+          reason: string | null
+          recorded_by: string | null
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          category?: Database["public"]["Enums"]["cash_movement_category"]
+          created_at?: string
+          id?: string
+          method: Database["public"]["Enums"]["payment_method"]
+          occurred_at?: string
+          reason?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["cash_movement_category"]
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          occurred_at?: string
+          reason?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
@@ -1352,6 +1388,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_bill_payment: {
+        Args: {
+          _amount: number
+          _bill_id: string
+          _method: string
+          _password?: string
+          _reference?: string
+        }
+        Returns: string
+      }
       add_invoice_payment: {
         Args: {
           _amount: number
@@ -1431,6 +1477,17 @@ export type Database = {
       }
       recalc_order_totals: { Args: { _order_id: string }; Returns: undefined }
       recalc_sale_totals: { Args: { _sale_id: string }; Returns: undefined }
+      record_cash_outflow: {
+        Args: {
+          _amount: number
+          _category: string
+          _method: string
+          _password: string
+          _reason: string
+          _reference: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role:
@@ -1442,6 +1499,11 @@ export type Database = {
         | "operations"
       batch_status: "planned" | "in_progress" | "completed" | "cancelled"
       bill_status: "draft" | "received" | "paid" | "overdue" | "cancelled"
+      cash_movement_category:
+        | "supplies"
+        | "supplier_payment"
+        | "commission"
+        | "other"
       cost_category: "variable_input" | "variable_labor" | "fixed"
       customer_status: "active" | "inactive" | "prospect"
       customer_type: "standard" | "wholesale"
@@ -1607,6 +1669,12 @@ export const Constants = {
       ],
       batch_status: ["planned", "in_progress", "completed", "cancelled"],
       bill_status: ["draft", "received", "paid", "overdue", "cancelled"],
+      cash_movement_category: [
+        "supplies",
+        "supplier_payment",
+        "commission",
+        "other",
+      ],
       cost_category: ["variable_input", "variable_labor", "fixed"],
       customer_status: ["active", "inactive", "prospect"],
       customer_type: ["standard", "wholesale"],
