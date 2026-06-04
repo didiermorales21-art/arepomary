@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -7,9 +7,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Banknote, Smartphone, Gift, Wallet } from "lucide-react";
+import { Banknote, Smartphone, Gift, Wallet, MinusCircle, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { fmtMoney } from "@/lib/export";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/cashbox")({
   component: CashboxPage,
@@ -25,6 +33,13 @@ const METHOD_LABELS: Record<string, string> = {
   other: "Otro",
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  supplies: "Compra de insumos",
+  supplier_payment: "Pago a proveedor",
+  commission: "Pago de comisiones",
+  other: "Otro",
+};
+
 function defaultRange() {
   const end = new Date();
   const start = new Date();
@@ -34,28 +49,84 @@ function defaultRange() {
 }
 
 function CashboxPage() {
+  const qc = useQueryClient();
   const initial = useMemo(defaultRange, []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
+  const [outOpen, setOutOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["cashbox", from, to],
     queryFn: async () => {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
-      const { data: pays, error } = await supabase
-        .from("invoice_payments")
-        .select("amount, method, paid_at, invoices(customers(name))")
-        .gte("paid_at", fromIso)
-        .lte("paid_at", toIso)
-        .order("paid_at", { ascending: false });
-      if (error) throw error;
-      const totals: Record<string, number> = {};
-      (pays ?? []).forEach((p: any) => {
-        totals[p.method] = (totals[p.method] ?? 0) + Number(p.amount || 0);
+      const [pays, bills, outs] = await Promise.all([
+        supabase
+          .from("invoice_payments")
+          .select("amount, method, paid_at, invoices(customers(name))")
+          .gte("paid_at", fromIso).lte("paid_at", toIso),
+        supabase
+          .from("bill_payments")
+          .select("amount, method, paid_at, reference, bills(suppliers(name))")
+          .gte("paid_at", fromIso).lte("paid_at", toIso),
+        supabase
+          .from("cash_movements")
+          .select("amount, method, occurred_at, category, reason, reference")
+          .gte("occurred_at", fromIso).lte("occurred_at", toIso),
+      ]);
+      if (pays.error) throw pays.error;
+      if (bills.error) throw bills.error;
+      if (outs.error) throw outs.error;
+
+      const rows: any[] = [];
+      (pays.data ?? []).forEach((p: any) => rows.push({
+        kind: "in", date: p.paid_at, method: p.method, amount: Number(p.amount || 0),
+        party: p.invoices?.customers?.name ?? "Cliente",
+        detail: "Pago de factura",
+      }));
+      (bills.data ?? []).forEach((p: any) => rows.push({
+        kind: "out", date: p.paid_at, method: p.method, amount: Number(p.amount || 0),
+        party: p.bills?.suppliers?.name ?? "Proveedor",
+        detail: "Pago a proveedor", reference: p.reference,
+        category: "supplier_payment",
+      }));
+      (outs.data ?? []).forEach((m: any) => rows.push({
+        kind: "out", date: m.occurred_at, method: m.method, amount: Number(m.amount || 0),
+        party: CATEGORY_LABELS[m.category] ?? m.category,
+        detail: m.reason || CATEGORY_LABELS[m.category] || "Salida de caja",
+        reference: m.reference, category: m.category,
+      }));
+      rows.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const totals: Record<string, { in: number; out: number; net: number }> = {};
+      const ensure = (m: string) => (totals[m] ??= { in: 0, out: 0, net: 0 });
+      rows.forEach((r) => {
+        const t = ensure(r.method);
+        if (r.kind === "in") { t.in += r.amount; t.net += r.amount; }
+        else { t.out += r.amount; t.net -= r.amount; }
       });
-      return { rows: pays ?? [], totals };
+      return { rows, totals };
     },
+  });
+
+  const recordOutflow = useMutation({
+    mutationFn: async (input: { amount: number; method: string; category: string; reason: string; reference: string; password: string }) => {
+      const { error } = await (supabase as any).rpc("record_cash_outflow", {
+        _amount: input.amount,
+        _method: input.method,
+        _category: input.category,
+        _reason: input.reason,
+        _reference: input.reference,
+        _password: input.password,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cashbox"] });
+      toast.success("Salida registrada");
+      setOutOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const cards = [
@@ -65,7 +136,9 @@ function CashboxPage() {
     { key: "gift", label: "Regalo", icon: Gift, accent: "bg-gradient-gold" },
   ];
 
-  const totalReal = (data?.totals.cash ?? 0) + (data?.totals.nequi ?? 0) + (data?.totals.daviplata ?? 0);
+  const realKeys = ["cash", "nequi", "daviplata"];
+  const totalReal = realKeys.reduce((acc, k) => acc + (data?.totals?.[k]?.net ?? 0), 0);
+
   const resetRange = () => {
     const r = defaultRange();
     setFrom(r.from);
@@ -76,7 +149,83 @@ function CashboxPage() {
     <>
       <PageHeader
         title="Caja"
-        description="Dinero recaudado por método de pago según las facturas ejecutadas."
+        description="Dinero recaudado y salidas de efectivo por método de pago."
+        actions={
+          <Dialog open={outOpen} onOpenChange={setOutOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <MinusCircle className="mr-1 h-4 w-4" /> Registrar salida
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-display">Registrar salida de caja</DialogTitle>
+              </DialogHeader>
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  recordOutflow.mutate({
+                    amount: Number(fd.get("amount") || 0),
+                    method: String(fd.get("method") || "cash"),
+                    category: String(fd.get("category") || "other"),
+                    reason: String(fd.get("reason") || ""),
+                    reference: String(fd.get("reference") || ""),
+                    password: String(fd.get("password") || ""),
+                  });
+                }}
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="o_amount">Monto</Label>
+                    <Input id="o_amount" name="amount" type="number" step="0.01" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="o_method">Método</Label>
+                    <Select name="method" defaultValue="cash">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Efectivo</SelectItem>
+                        <SelectItem value="nequi">Nequi</SelectItem>
+                        <SelectItem value="daviplata">Daviplata</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="o_category">Categoría</Label>
+                  <Select name="category" defaultValue="supplies">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="supplies">Compra de insumos</SelectItem>
+                      <SelectItem value="supplier_payment">Pago a proveedor</SelectItem>
+                      <SelectItem value="commission">Pago de comisiones</SelectItem>
+                      <SelectItem value="other">Otro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="o_reason">Motivo / descripción</Label>
+                  <Input id="o_reason" name="reason" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="o_reference">Referencia (opcional)</Label>
+                  <Input id="o_reference" name="reference" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="o_password">Clave de autorización</Label>
+                  <Input id="o_password" name="password" type="password" required autoComplete="off" />
+                </div>
+                <DialogFooter>
+                  <Button type="submit" disabled={recordOutflow.isPending} className="bg-gradient-primary">
+                    {recordOutflow.isPending ? "Guardando…" : "Registrar salida"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
       <div className="space-y-6 p-6">
         <Card className="shadow-card">
@@ -94,57 +243,78 @@ function CashboxPage() {
         </Card>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <Card key={c.key} className="overflow-hidden shadow-card">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground">{c.label}</p>
-                    <p className="mt-2 font-display text-2xl font-semibold tracking-tight">{fmtMoney(data?.totals[c.key] ?? 0)}</p>
+          {cards.map((c) => {
+            const t = data?.totals?.[c.key];
+            return (
+              <Card key={c.key} className="overflow-hidden shadow-card">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground">{c.label}</p>
+                      <p className="font-display text-2xl font-semibold tracking-tight">{fmtMoney(t?.net ?? 0)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="text-emerald-600">+{fmtMoney(t?.in ?? 0)}</span>{" · "}
+                        <span className="text-destructive">-{fmtMoney(t?.out ?? 0)}</span>
+                      </p>
+                    </div>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-primary-foreground ${c.accent}`}>
+                      <c.icon className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-primary-foreground ${c.accent}`}>
-                    <c.icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="font-display flex items-center gap-2">
               <Wallet className="h-5 w-5" />
-              Total disponible (Efectivo + Nequi + Daviplata): {fmtMoney(totalReal)}
+              Saldo disponible (Efectivo + Nequi + Daviplata): {fmtMoney(totalReal)}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground mb-3">
-              El método <b>Regalo</b> no representa dinero recibido y se excluye del total disponible.
+              El método <b>Regalo</b> no representa dinero recibido y se excluye del saldo disponible.
             </p>
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Fecha</TableHead>
-                  <TableHead>Cliente</TableHead>
+                  <TableHead>Concepto / contraparte</TableHead>
+                  <TableHead>Detalle</TableHead>
                   <TableHead>Método</TableHead>
                   <TableHead className="text-right">Monto</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
                 ) : (data?.rows ?? []).length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">Sin pagos en el rango seleccionado.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">Sin movimientos en el rango.</TableCell></TableRow>
                 ) : (
-                  (data?.rows ?? []).map((p: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell>{new Date(p.paid_at).toLocaleString("es-CO")}</TableCell>
-                      <TableCell className="font-medium">{p.invoices?.customers?.name ?? "—"}</TableCell>
-                      <TableCell>{METHOD_LABELS[p.method] ?? p.method}</TableCell>
-                      <TableCell className="text-right">{fmtMoney(Number(p.amount))}</TableCell>
-                    </TableRow>
-                  ))
+                  (data?.rows ?? []).map((r: any, idx: number) => {
+                    const isOut = r.kind === "out";
+                    return (
+                      <TableRow key={idx} className={isOut ? "bg-destructive/5" : "bg-emerald-500/5"}>
+                        <TableCell>
+                          <Badge variant={isOut ? "destructive" : "default"} className="gap-1">
+                            {isOut ? <ArrowDownCircle className="h-3 w-3" /> : <ArrowUpCircle className="h-3 w-3" />}
+                            {isOut ? "Salida" : "Ingreso"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(r.date).toLocaleString("es-CO")}</TableCell>
+                        <TableCell className="font-medium">{r.party}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{r.detail}{r.reference ? ` · ${r.reference}` : ""}</TableCell>
+                        <TableCell>{METHOD_LABELS[r.method] ?? r.method}</TableCell>
+                        <TableCell className={`text-right font-medium ${isOut ? "text-destructive" : "text-emerald-600"}`}>
+                          {isOut ? "-" : "+"}{fmtMoney(r.amount)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
