@@ -239,24 +239,29 @@ function PayablesPage() {
                 amount: Number(fd.get("amount") || 0),
                 method: String(fd.get("method") || "cash"),
                 reference: String(fd.get("reference") || ""),
+                password: String(fd.get("password") || ""),
               });
             }}
           >
             <div className="space-y-2"><Label htmlFor="amount">Monto</Label><Input id="amount" name="amount" type="number" step="0.01" required defaultValue={payFor?.balance} /></div>
             <div className="space-y-2">
-              <Label htmlFor="method">Método</Label>
+              <Label htmlFor="method">Método de pago</Label>
               <Select name="method" defaultValue="cash">
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Efectivo</SelectItem>
+                  <SelectItem value="nequi">Nequi</SelectItem>
+                  <SelectItem value="daviplata">Daviplata</SelectItem>
                   <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                  <SelectItem value="check">Cheque</SelectItem>
-                  <SelectItem value="credit">Crédito</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Este pago se descontará del saldo de caja del método seleccionado.</p>
             </div>
             <div className="space-y-2"><Label htmlFor="reference">Referencia</Label><Input id="reference" name="reference" /></div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Clave de autorización</Label>
+              <Input id="password" name="password" type="password" required autoComplete="off" />
+            </div>
             <DialogFooter>
               <Button type="submit" disabled={addPayment.isPending} className="bg-gradient-primary">
                 {addPayment.isPending ? "Guardando…" : "Registrar"}
