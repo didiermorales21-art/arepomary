@@ -25,6 +25,7 @@ import { Route as AppSellersRouteImport } from './routes/app.sellers'
 import { Route as AppSalesRouteImport } from './routes/app.sales'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppReceivablesRouteImport } from './routes/app.receivables'
+import { Route as AppRawMaterialsRouteImport } from './routes/app.raw-materials'
 import { Route as AppProductsRouteImport } from './routes/app.products'
 import { Route as AppProductionRouteImport } from './routes/app.production'
 import { Route as AppPayablesRouteImport } from './routes/app.payables'
@@ -120,6 +121,11 @@ const AppReceivablesRoute = AppReceivablesRouteImport.update({
   path: '/receivables',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRawMaterialsRoute = AppRawMaterialsRouteImport.update({
+  id: '/raw-materials',
+  path: '/raw-materials',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProductsRoute = AppProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -211,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/app/payables': typeof AppPayablesRoute
   '/app/production': typeof AppProductionRoute
   '/app/products': typeof AppProductsRoute
+  '/app/raw-materials': typeof AppRawMaterialsRoute
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/app/payables': typeof AppPayablesRoute
   '/app/production': typeof AppProductionRoute
   '/app/products': typeof AppProductsRoute
+  '/app/raw-materials': typeof AppRawMaterialsRoute
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/app/payables': typeof AppPayablesRoute
   '/app/production': typeof AppProductionRoute
   '/app/products': typeof AppProductsRoute
+  '/app/raw-materials': typeof AppRawMaterialsRoute
   '/app/receivables': typeof AppReceivablesRoute
   '/app/reports': typeof AppReportsRoute
   '/app/sales': typeof AppSalesRoute
@@ -309,6 +318,7 @@ export interface FileRouteTypes {
     | '/app/payables'
     | '/app/production'
     | '/app/products'
+    | '/app/raw-materials'
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/app/payables'
     | '/app/production'
     | '/app/products'
+    | '/app/raw-materials'
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/app/payables'
     | '/app/production'
     | '/app/products'
+    | '/app/raw-materials'
     | '/app/receivables'
     | '/app/reports'
     | '/app/sales'
@@ -509,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReceivablesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/raw-materials': {
+      id: '/app/raw-materials'
+      path: '/raw-materials'
+      fullPath: '/app/raw-materials'
+      preLoaderRoute: typeof AppRawMaterialsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/products': {
       id: '/app/products'
       path: '/products'
@@ -624,6 +643,7 @@ interface AppRouteChildren {
   AppPayablesRoute: typeof AppPayablesRoute
   AppProductionRoute: typeof AppProductionRoute
   AppProductsRoute: typeof AppProductsRoute
+  AppRawMaterialsRoute: typeof AppRawMaterialsRoute
   AppReceivablesRoute: typeof AppReceivablesRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSalesRoute: typeof AppSalesRoute
@@ -650,6 +670,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPayablesRoute: AppPayablesRoute,
   AppProductionRoute: AppProductionRoute,
   AppProductsRoute: AppProductsRoute,
+  AppRawMaterialsRoute: AppRawMaterialsRoute,
   AppReceivablesRoute: AppReceivablesRoute,
   AppReportsRoute: AppReportsRoute,
   AppSalesRoute: AppSalesRoute,
@@ -676,13 +697,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

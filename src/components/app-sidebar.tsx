@@ -50,6 +50,7 @@ const navMain = [
 const navOps = [
   { title: "Zonas", url: "/app/zones", icon: MapPin, soon: false },
   { title: "Producción", url: "/app/production", icon: Wheat, soon: false },
+  { title: "Materias primas", url: "/app/raw-materials", icon: Wheat, soon: false },
   { title: "Almacenes", url: "/app/warehouses", icon: Warehouse, soon: false },
   { title: "Inventario", url: "/app/inventory", icon: Boxes, soon: false },
   { title: "Movimientos", url: "/app/movements", icon: ArrowLeftRight, soon: false },
