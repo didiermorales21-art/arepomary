@@ -55,6 +55,7 @@ export type Database = {
           id: string
           line_total: number | null
           quantity: number
+          raw_material_id: string | null
           unit_price: number
         }
         Insert: {
@@ -64,6 +65,7 @@ export type Database = {
           id?: string
           line_total?: number | null
           quantity?: number
+          raw_material_id?: string | null
           unit_price: number
         }
         Update: {
@@ -73,6 +75,7 @@ export type Database = {
           id?: string
           line_total?: number | null
           quantity?: number
+          raw_material_id?: string | null
           unit_price?: number
         }
         Relationships: [
@@ -81,6 +84,13 @@ export type Database = {
             columns: ["bill_id"]
             isOneToOne: false
             referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_items_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
             referencedColumns: ["id"]
           },
         ]
@@ -227,6 +237,8 @@ export type Database = {
       company_settings: {
         Row: {
           address: string | null
+          commission_standard_per_package: number
+          commission_wholesale_per_package: number
           company_name: string
           created_at: string
           currency: string
@@ -242,6 +254,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          commission_standard_per_package?: number
+          commission_wholesale_per_package?: number
           company_name?: string
           created_at?: string
           currency?: string
@@ -257,6 +271,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          commission_standard_per_package?: number
+          commission_wholesale_per_package?: number
           company_name?: string
           created_at?: string
           currency?: string
@@ -281,6 +297,7 @@ export type Database = {
           is_system: boolean
           key: string
           name: string
+          raw_material_id: string | null
           sort_order: number
           unit: string
           unit_cost: number
@@ -294,6 +311,7 @@ export type Database = {
           is_system?: boolean
           key: string
           name: string
+          raw_material_id?: string | null
           sort_order?: number
           unit?: string
           unit_cost?: number
@@ -307,21 +325,32 @@ export type Database = {
           is_system?: boolean
           key?: string
           name?: string
+          raw_material_id?: string | null
           sort_order?: number
           unit?: string
           unit_cost?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cost_items_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customers: {
         Row: {
           address: string | null
+          commission_per_package: number | null
           created_at: string
           customer_type: Database["public"]["Enums"]["customer_type"]
           document_id: string | null
           email: string | null
           first_name: string | null
+          gives_commission: boolean
           id: string
           last_name: string | null
           name: string
@@ -337,11 +366,13 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          commission_per_package?: number | null
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
           email?: string | null
           first_name?: string | null
+          gives_commission?: boolean
           id?: string
           last_name?: string | null
           name: string
@@ -357,11 +388,13 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          commission_per_package?: number | null
           created_at?: string
           customer_type?: Database["public"]["Enums"]["customer_type"]
           document_id?: string | null
           email?: string | null
           first_name?: string | null
+          gives_commission?: boolean
           id?: string
           last_name?: string | null
           name?: string
@@ -1086,6 +1119,86 @@ export type Database = {
         }
         Relationships: []
       }
+      raw_material_movements: {
+        Row: {
+          created_at: string
+          id: string
+          quantity: number
+          raw_material_id: string
+          recorded_by: string | null
+          reference: string | null
+          type: string
+          unit_cost: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quantity: number
+          raw_material_id: string
+          recorded_by?: string | null
+          reference?: string | null
+          type: string
+          unit_cost?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quantity?: number
+          raw_material_id?: string
+          recorded_by?: string | null
+          reference?: string | null
+          type?: string
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_movements_raw_material_id_fkey"
+            columns: ["raw_material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_materials: {
+        Row: {
+          active: boolean
+          created_at: string
+          current_stock: number
+          id: string
+          min_stock: number
+          name: string
+          notes: string | null
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          current_stock?: number
+          id?: string
+          min_stock?: number
+          name: string
+          notes?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          current_stock?: number
+          id?: string
+          min_stock?: number
+          name?: string
+          notes?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sale_items: {
         Row: {
           created_at: string
@@ -1469,6 +1582,17 @@ export type Database = {
           phone: string
           seller_id: string
         }[]
+      }
+      purchase_raw_material: {
+        Args: {
+          _method: string
+          _password: string
+          _quantity: number
+          _raw_material_id: string
+          _reference: string
+          _unit_cost: number
+        }
+        Returns: string
       }
       recalc_bill_totals: { Args: { _bill_id: string }; Returns: undefined }
       recalc_invoice_totals: {
