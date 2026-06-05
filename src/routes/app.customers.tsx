@@ -170,6 +170,8 @@ function CustomersPage() {
       seller_id: string;
       status: string;
       customer_type?: string;
+      gives_commission: boolean;
+      commission_per_package: number | null;
     }) => {
       if (input.phone && !isValidPhone(input.phone)) {
         throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
@@ -189,6 +191,8 @@ function CustomersPage() {
         notes: input.notes,
         seller_id: input.seller_id,
         status: input.status,
+        gives_commission: input.gives_commission,
+        commission_per_package: input.commission_per_package,
       };
       if (input.customer_type) update.customer_type = input.customer_type;
       const { error } = await supabase
@@ -214,6 +218,8 @@ function CustomersPage() {
     setEditNeighborhoodId(c.neighborhood_id || "");
     setEditStatus(c.status || "active");
     setEditCustomerType(c.customer_type || "standard");
+    setEditGivesCommission(c.gives_commission !== false);
+    setEditCommissionOverride(c.commission_per_package != null ? String(c.commission_per_package) : "");
   }
 
 
