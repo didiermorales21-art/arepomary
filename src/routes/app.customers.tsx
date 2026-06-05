@@ -79,7 +79,7 @@ function CustomersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name, first_name, last_name, phone, email, address, status, document_id, neighborhood_id, seller_id, customer_type, created_at, neighborhoods(name, zones(name))")
+        .select("id, name, first_name, last_name, phone, email, address, status, document_id, neighborhood_id, seller_id, customer_type, gives_commission, commission_per_package, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
