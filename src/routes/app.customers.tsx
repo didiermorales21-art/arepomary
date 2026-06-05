@@ -116,6 +116,8 @@ function CustomersPage() {
       neighborhood_id: string | null;
       notes: string;
       seller_id: string;
+      gives_commission: boolean;
+      commission_per_package: number | null;
     }) => {
       if (!user) throw new Error("Sin sesión");
       if (!isValidPhone(input.phone)) {
@@ -137,6 +139,8 @@ function CustomersPage() {
         neighborhood_id: input.neighborhood_id,
         notes: input.notes,
         seller_id: input.seller_id,
+        gives_commission: input.gives_commission,
+        commission_per_package: input.commission_per_package,
       } as any);
       if (error) throw error;
     },
@@ -146,6 +150,8 @@ function CustomersPage() {
       setOpen(false);
       setPhone("");
       setSellerId("");
+      setGivesCommission(true);
+      setCommissionOverride("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
