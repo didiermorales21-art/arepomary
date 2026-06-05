@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,6 @@ function CustomersPage() {
   const [editGivesCommission, setEditGivesCommission] = useState(true);
   const [editCommissionOverride, setEditCommissionOverride] = useState<string>("");
 
-
   const { data: neighborhoods } = useQuery({
     queryKey: ["neighborhoods"],
     queryFn: async () =>
@@ -86,7 +86,6 @@ function CustomersPage() {
     },
   });
 
-
   const sellerNameMap = useMemo(() => {
     const m = new Map<string, string>();
     (sellers ?? []).forEach((s) => m.set(s.id, s.full_name || "—"));
@@ -106,26 +105,10 @@ function CustomersPage() {
   }, [customers, search]);
 
   const createMutation = useMutation({
-    mutationFn: async (input: {
-      first_name: string;
-      last_name: string;
-      document_id: string;
-      phone: string;
-      email: string;
-      address: string;
-      neighborhood_id: string | null;
-      notes: string;
-      seller_id: string;
-      gives_commission: boolean;
-      commission_per_package: number | null;
-    }) => {
+    mutationFn: async (input: any) => {
       if (!user) throw new Error("Sin sesión");
-      if (!isValidPhone(input.phone)) {
-        throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
-      }
-      if (!input.seller_id) {
-        throw new Error("Debes seleccionar un vendedor");
-      }
+      if (!isValidPhone(input.phone)) throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
+      if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
       if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
       const composed = `${input.first_name} ${input.last_name}`.trim();
       const { error } = await supabase.from("customers").insert({
@@ -157,25 +140,8 @@ function CustomersPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (input: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      document_id: string;
-      phone: string;
-      email: string;
-      address: string;
-      neighborhood_id: string | null;
-      notes: string;
-      seller_id: string;
-      status: string;
-      customer_type?: string;
-      gives_commission: boolean;
-      commission_per_package: number | null;
-    }) => {
-      if (input.phone && !isValidPhone(input.phone)) {
-        throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
-      }
+    mutationFn: async (input: any) => {
+      if (input.phone && !isValidPhone(input.phone)) throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
       if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
       const composed = `${input.first_name} ${input.last_name}`.trim();
@@ -195,13 +161,9 @@ function CustomersPage() {
         commission_per_package: input.commission_per_package,
       };
       if (input.customer_type) update.customer_type = input.customer_type;
-      const { error } = await supabase
-        .from("customers")
-        .update(update)
-        .eq("id", input.id);
+      const { error } = await supabase.from("customers").update(update).eq("id", input.id);
       if (error) throw error;
     },
-
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Cliente actualizado");
@@ -209,7 +171,6 @@ function CustomersPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
 
   function openEdit(c: any) {
     setEditing(c);
@@ -222,7 +183,6 @@ function CustomersPage() {
     setEditCommissionOverride(c.commission_per_package != null ? String(c.commission_per_package) : "");
   }
 
-
   return (
     <>
       <PageHeader
@@ -232,16 +192,15 @@ function CustomersPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary shadow-elegant">
-                <Plus className="mr-1 h-4 w-4" />
-                Nuevo cliente
+                <Plus className="mr-1 h-4 w-4" /> Nuevo cliente
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-4">
+              <DialogHeader className="pb-2">
                 <DialogTitle className="font-display">Nuevo cliente</DialogTitle>
               </DialogHeader>
               <form
-                className="space-y-4"
+                className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
@@ -255,87 +214,61 @@ function CustomersPage() {
                     neighborhood_id: (fd.get("neighborhood_id") as string) || null,
                     notes: String(fd.get("notes") || ""),
                     seller_id: isAdmin ? sellerId : (user?.id ?? COMPANY_ID),
+                    gives_commission: givesCommission,
+                    commission_per_package: commissionOverride ? Number(commissionOverride) : null,
                   });
                 }}
               >
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="document_id">Documento</Label>
-                    <Input id="document_id" name="document_id" inputMode="numeric" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
-                      required
-                      {...PHONE_INPUT_PROPS}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="first_name">Nombres</Label>
-                    <Input id="first_name" name="first_name" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="last_name">Apellidos</Label>
-                    <Input id="last_name" name="last_name" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Dirección</Label>
-                  <Input id="address" name="address" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="neighborhood_id">Barrio</Label>
-                  <Select name="neighborhood_id">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un barrio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(neighborhoods ?? []).map((n: any) => (
-                        <SelectItem key={n.id} value={n.id}>
-                          {n.name}
-                          {n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    La zona se asigna automáticamente según el barrio.
-                  </p>
-                </div>
-                {isAdmin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="seller_id">Vendedor asignado</Label>
-                    <Select value={sellerId} onValueChange={setSellerId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona un vendedor" />
-                      </SelectTrigger>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" inputMode="numeric" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={phone} className="h-8 text-sm" onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))} required {...PHONE_INPUT_PROPS} /></div>
+                  <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" /></div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Barrio</Label>
+                    <Select name="neighborhood_id">
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona un barrio" /></SelectTrigger>
                       <SelectContent>
-                        {(sellers ?? []).map((s: any) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.full_name || "—"}
-                            {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
-                          </SelectItem>
+                        {(neighborhoods ?? []).map((n: any) => (
+                          <SelectItem key={n.id} value={n.id}>{n.name}{n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="notes">Notas</Label>
-                  <Textarea id="notes" name="notes" rows={3} />
+                  {isAdmin && (
+                    <div className="space-y-1 col-span-2">
+                      <Label className="text-xs">Vendedor asignado</Label>
+                      <Select value={sellerId} onValueChange={setSellerId}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona un vendedor" /></SelectTrigger>
+                        <SelectContent>
+                          {(sellers ?? []).map((s: any) => (
+                            <SelectItem key={s.id} value={s.id}>{s.full_name || "—"}{s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
-                <DialogFooter>
-                  <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-primary">
+
+                <div className="rounded-md border p-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Aplica comisión al vendedor</Label>
+                    <Switch checked={givesCommission} onCheckedChange={setGivesCommission} />
+                  </div>
+                  {givesCommission && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Comisión por paquete (opcional, sobrescribe global)</Label>
+                      <Input type="number" step="1" className="h-8 text-sm" placeholder="Usar global por tipo de cliente"
+                        value={commissionOverride} onChange={(e) => setCommissionOverride(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1"><Label className="text-xs">Notas</Label><Textarea name="notes" rows={2} className="text-sm" /></div>
+                <DialogFooter className="pt-1">
+                  <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-primary h-8 text-sm">
                     {createMutation.isPending ? "Guardando…" : "Guardar"}
                   </Button>
                 </DialogFooter>
@@ -347,12 +280,7 @@ function CustomersPage() {
       <div className="space-y-4 p-6">
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nombre, documento, teléfono…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Buscar por nombre, documento, teléfono…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
         <div className="rounded-xl border bg-card shadow-card">
@@ -363,26 +291,18 @@ function CustomersPage() {
                 <TableHead>Documento</TableHead>
                 <TableHead>Teléfono</TableHead>
                 <TableHead>Barrio</TableHead>
-                <TableHead>Zona</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Comisión</TableHead>
                 <TableHead>Estado</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[60px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
-                    Cargando…
-                  </TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
-                    No hay clientes todavía. Crea el primero.
-                  </TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No hay clientes todavía. Crea el primero.</TableCell></TableRow>
               ) : (
                 filtered.map((c: any) => (
                   <TableRow key={c.id}>
@@ -390,38 +310,39 @@ function CustomersPage() {
                     <TableCell className="font-mono text-xs">{c.document_id || "—"}</TableCell>
                     <TableCell>{c.phone || "—"}</TableCell>
                     <TableCell>{c.neighborhoods?.name || "—"}</TableCell>
-                    <TableCell>{c.neighborhoods?.zones?.name || "—"}</TableCell>
                     <TableCell className="text-xs">{sellerNameMap.get(c.seller_id) || "—"}</TableCell>
                     <TableCell>
                       <Badge variant={c.customer_type === "wholesale" ? "default" : "outline"}>
                         {c.customer_type === "wholesale" ? "Comercial" : "Estándar"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge>
+                    <TableCell className="text-xs">
+                      {c.gives_commission === false ? (
+                        <span className="text-muted-foreground">No aplica</span>
+                      ) : c.commission_per_package != null ? (
+                        <span className="font-medium">${Number(c.commission_per_package).toLocaleString("es-CO")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Global</span>
+                      )}
                     </TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+                    <TableCell><Badge variant={c.status === "active" ? "default" : "secondary"}>{c.status}</Badge></TableCell>
+                    <TableCell><Button size="sm" variant="ghost" onClick={() => openEdit(c)}><Pencil className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
                 ))
               )}
-
             </TableBody>
           </Table>
         </div>
       </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-4">
+          <DialogHeader className="pb-2">
             <DialogTitle className="font-display">Editar cliente</DialogTitle>
           </DialogHeader>
           {editing && (
             <form
-              className="space-y-4"
+              className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
@@ -438,114 +359,83 @@ function CustomersPage() {
                   seller_id: isAdmin ? editSellerId : (editing.seller_id || user?.id || COMPANY_ID),
                   status: editStatus,
                   customer_type: isAdmin ? editCustomerType : undefined,
+                  gives_commission: editGivesCommission,
+                  commission_per_package: editCommissionOverride ? Number(editCommissionOverride) : null,
                 });
-
               }}
             >
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="e_document_id">Documento</Label>
-                  <Input id="e_document_id" name="document_id" defaultValue={editing.document_id || ""} inputMode="numeric" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="e_phone">Teléfono</Label>
-                  <Input
-                    id="e_phone"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))}
-                    {...PHONE_INPUT_PROPS}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="e_first_name">Nombres</Label>
-                  <Input id="e_first_name" name="first_name" defaultValue={editing.first_name || ""} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="e_last_name">Apellidos</Label>
-                  <Input id="e_last_name" name="last_name" defaultValue={editing.last_name || ""} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="e_email">Email</Label>
-                <Input id="e_email" name="email" type="email" defaultValue={editing.email || ""} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="e_address">Dirección</Label>
-                <Input id="e_address" name="address" defaultValue={editing.address || ""} />
-              </div>
-              <div className="space-y-2">
-                <Label>Barrio</Label>
-                <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un barrio" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(neighborhoods ?? []).map((n: any) => (
-                      <SelectItem key={n.id} value={n.id}>
-                        {n.name}
-                        {n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isAdmin && (
-                <div className="space-y-2">
-                  <Label>Vendedor asignado</Label>
-                  <Select value={editSellerId} onValueChange={setEditSellerId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un vendedor" />
-                    </SelectTrigger>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" defaultValue={editing.document_id || ""} inputMode="numeric" /></div>
+                <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={editPhone} className="h-8 text-sm" onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))} {...PHONE_INPUT_PROPS} /></div>
+                <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" defaultValue={editing.first_name || ""} required /></div>
+                <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" defaultValue={editing.last_name || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" defaultValue={editing.email || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" defaultValue={editing.address || ""} /></div>
+                <div className="space-y-1 col-span-2">
+                  <Label className="text-xs">Barrio</Label>
+                  <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona un barrio" /></SelectTrigger>
                     <SelectContent>
-                      {(sellers ?? []).map((s: any) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.full_name || "—"}
-                          {s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}
-                        </SelectItem>
+                      {(neighborhoods ?? []).map((n: any) => (
+                        <SelectItem key={n.id} value={n.id}>{n.name}{n.zones?.name && <span className="text-muted-foreground"> · {n.zones.name}</span>}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-              {isAdmin && (
-                <div className="space-y-2">
-                  <Label>Tipo de cliente</Label>
-                  <Select value={editCustomerType} onValueChange={setEditCustomerType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                {isAdmin && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Vendedor</Label>
+                    <Select value={editSellerId} onValueChange={setEditSellerId}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                      <SelectContent>
+                        {(sellers ?? []).map((s: any) => (
+                          <SelectItem key={s.id} value={s.id}>{s.full_name || "—"}{s.id === COMPANY_ID && <span className="text-muted-foreground"> · empresa</span>}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {isAdmin && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={editCustomerType} onValueChange={setEditCustomerType}>
+                      <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Estándar</SelectItem>
+                        <SelectItem value="wholesale">Comercial (mayorista)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs">Estado</Label>
+                  <Select value={editStatus} onValueChange={setEditStatus}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="standard">Estándar (precio normal)</SelectItem>
-                      <SelectItem value="wholesale">Comercial (precio al por mayor)</SelectItem>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="inactive">Inactivo</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Solo el administrador puede modificar el tipo de cliente.
-                  </p>
                 </div>
-              )}
-              <div className="space-y-2">
+              </div>
 
-                <Label>Estado</Label>
-                <Select value={editStatus} onValueChange={setEditStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">active</SelectItem>
-                    <SelectItem value="inactive">inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="rounded-md border p-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Aplica comisión al vendedor</Label>
+                  <Switch checked={editGivesCommission} onCheckedChange={setEditGivesCommission} />
+                </div>
+                {editGivesCommission && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Comisión por paquete (opcional, sobrescribe global)</Label>
+                    <Input type="number" step="1" className="h-8 text-sm" placeholder="Usar global por tipo de cliente"
+                      value={editCommissionOverride} onChange={(e) => setEditCommissionOverride(e.target.value)} />
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="e_notes">Notas</Label>
-                <Textarea id="e_notes" name="notes" defaultValue={editing.notes || ""} rows={3} />
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={updateMutation.isPending} className="bg-gradient-primary">
+
+              <div className="space-y-1"><Label className="text-xs">Notas</Label><Textarea name="notes" defaultValue={editing.notes || ""} rows={2} className="text-sm" /></div>
+              <DialogFooter className="pt-1">
+                <Button type="submit" disabled={updateMutation.isPending} className="bg-gradient-primary h-8 text-sm">
                   {updateMutation.isPending ? "Guardando…" : "Guardar cambios"}
                 </Button>
               </DialogFooter>
