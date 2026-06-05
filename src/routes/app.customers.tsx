@@ -43,12 +43,16 @@ function CustomersPage() {
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [sellerId, setSellerId] = useState<string>("");
+  const [givesCommission, setGivesCommission] = useState(true);
+  const [commissionOverride, setCommissionOverride] = useState<string>("");
   const [editing, setEditing] = useState<any | null>(null);
   const [editPhone, setEditPhone] = useState("");
   const [editSellerId, setEditSellerId] = useState<string>("");
   const [editNeighborhoodId, setEditNeighborhoodId] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("active");
   const [editCustomerType, setEditCustomerType] = useState<string>("standard");
+  const [editGivesCommission, setEditGivesCommission] = useState(true);
+  const [editCommissionOverride, setEditCommissionOverride] = useState<string>("");
 
 
   const { data: neighborhoods } = useQuery({
