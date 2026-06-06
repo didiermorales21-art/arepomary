@@ -58,6 +58,11 @@ function PayablesPage() {
     queryFn: async () => (await supabase.from("suppliers").select("id, name").order("name")).data ?? [],
   });
 
+  const { data: rawMaterials } = useQuery({
+    queryKey: ["raw-materials-min"],
+    queryFn: async () => (await supabase.from("raw_materials" as any).select("id, name, unit").eq("active", true).order("name")).data ?? [],
+  });
+
   const { data: bills, isLoading } = useQuery({
     queryKey: ["bills"],
     queryFn: async () => {
@@ -76,7 +81,8 @@ function PayablesPage() {
   });
 
   const createBill = useMutation({
-    mutationFn: async (input: { supplier_id: string; due_date: string; description: string; amount: number; tax: number }) => {
+    mutationFn: async (input: { supplier_id: string; due_date: string; description: string; amount: number; tax: number; raw_material_id: string; quantity: number }) => {
+      if (!input.amount || input.amount <= 0) throw new Error("El monto debe ser mayor a 0");
       const { data: bill, error } = await supabase
         .from("bills")
         .insert({ supplier_id: input.supplier_id, due_date: input.due_date || null, status: "received", tax: input.tax })
@@ -86,13 +92,15 @@ function PayablesPage() {
       const { error: e2 } = await supabase.from("bill_items").insert({
         bill_id: bill.id,
         description: input.description,
-        quantity: 1,
-        unit_price: input.amount,
-      });
+        quantity: input.quantity || 1,
+        unit_price: input.amount / (input.quantity || 1),
+        raw_material_id: input.raw_material_id || null,
+      } as any);
       if (e2) throw e2;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["bills"] });
+      qc.invalidateQueries({ queryKey: ["raw-materials"] });
       toast.success("Factura de proveedor creada");
       setOpenCreate(false);
     },
@@ -153,6 +161,8 @@ function PayablesPage() {
                       description: String(fd.get("description") || ""),
                       amount: Number(fd.get("amount") || 0),
                       tax: Number(fd.get("tax") || 0),
+                      raw_material_id: String(fd.get("raw_material_id") || ""),
+                      quantity: Number(fd.get("quantity") || 1),
                     });
                   }}
                 >
@@ -166,8 +176,20 @@ function PayablesPage() {
                     </Select>
                   </div>
                   <div className="space-y-2"><Label htmlFor="description">Descripción</Label><Input id="description" name="description" required /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2"><Label htmlFor="amount">Subtotal</Label><Input id="amount" name="amount" type="number" step="0.01" required /></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="raw_material_id">Materia prima (opcional, suma stock al recibir)</Label>
+                    <Select name="raw_material_id">
+                      <SelectTrigger><SelectValue placeholder="Sin vínculo" /></SelectTrigger>
+                      <SelectContent>
+                        {(rawMaterials ?? []).map((rm: any) => (
+                          <SelectItem key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-2"><Label htmlFor="quantity">Cantidad</Label><Input id="quantity" name="quantity" type="number" step="0.01" min="0.01" defaultValue={1} /></div>
+                    <div className="space-y-2"><Label htmlFor="amount">Subtotal</Label><Input id="amount" name="amount" type="number" step="0.01" min="0.01" required /></div>
                     <div className="space-y-2"><Label htmlFor="tax">IVA</Label><Input id="tax" name="tax" type="number" step="0.01" defaultValue={0} /></div>
                   </div>
                   <div className="space-y-2"><Label htmlFor="due_date">Vence</Label><Input id="due_date" name="due_date" type="date" /></div>
