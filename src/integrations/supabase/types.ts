@@ -1612,6 +1612,15 @@ export type Database = {
         }
         Returns: string
       }
+      seller_commission_summary: {
+        Args: { _from?: string; _to?: string }
+        Returns: {
+          commission: number
+          packages: number
+          seller_id: string
+          seller_name: string
+        }[]
+      }
     }
     Enums: {
       app_role:
