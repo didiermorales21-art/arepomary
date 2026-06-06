@@ -41,6 +41,15 @@ function CostsPage() {
     },
   });
 
+  const { data: rawMaterials } = useQuery({
+    queryKey: ["raw-materials-min"],
+    queryFn: async () => {
+      const { data } = await supabase.from("raw_materials" as any)
+        .select("id, name, unit").eq("active", true).order("name");
+      return (data as any[]) ?? [];
+    },
+  });
+
   const updateItem = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
       const { error } = await supabase.from("cost_items" as any).update(patch).eq("id", id);
@@ -91,8 +100,13 @@ function CostsPage() {
     const [name, setName] = useState<string>(it.name);
     const [unit, setUnit] = useState<string>(it.unit);
     const [val, setVal] = useState<string>(String(it.unit_cost));
+    const [rmId, setRmId] = useState<string>(it.raw_material_id ?? "");
     const editableMeta = canManage && it.category === "variable_input";
-    const dirty = Number(val) !== Number(it.unit_cost) || (editableMeta && (name !== it.name || unit !== it.unit));
+    const showRm = it.category === "variable_input";
+    const dirty =
+      Number(val) !== Number(it.unit_cost) ||
+      (editableMeta && (name !== it.name || unit !== it.unit)) ||
+      (showRm && (rmId || "") !== (it.raw_material_id ?? ""));
     const save = () => {
       const patch: Record<string, unknown> = { unit_cost: Number(val) };
       if (editableMeta) {
@@ -100,6 +114,7 @@ function CostsPage() {
         patch.name = name.trim();
         patch.unit = unit.trim() || "unit";
       }
+      if (showRm) patch.raw_material_id = rmId || null;
       updateItem.mutate({ id: it.id, patch });
     };
     return (
@@ -113,27 +128,35 @@ function CostsPage() {
         </TableCell>
         <TableCell className="text-muted-foreground">
           {editableMeta ? (
-            <Input className="h-8 w-28" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="g, kg…" />
+            <Input className="h-8 w-24" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="g, kg…" />
           ) : (
             it.unit
           )}
         </TableCell>
         <TableCell className="text-right">
           <Input
-            className="ml-auto h-8 w-32 text-right tabular-nums"
-            type="number"
-            min="0"
-            step="0.01"
-            value={val}
-            onChange={(e) => setVal(e.target.value)}
+            className="ml-auto h-8 w-28 text-right tabular-nums"
+            type="number" min="0" step="0.01"
+            value={val} onChange={(e) => setVal(e.target.value)}
             disabled={!canManage}
           />
         </TableCell>
-        <TableCell className="w-[200px]">
+        {showRm && (
+          <TableCell>
+            <Select value={rmId || "__none__"} onValueChange={(v) => setRmId(v === "__none__" ? "" : v)} disabled={!canManage}>
+              <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Sin vínculo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin vínculo</SelectItem>
+                {(rawMaterials ?? []).map((rm: any) => (
+                  <SelectItem key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </TableCell>
+        )}
+        <TableCell className="w-[160px]">
           <div className="flex justify-end gap-2">
-            {canManage && dirty && (
-              <Button size="sm" onClick={save}>Guardar</Button>
-            )}
+            {canManage && dirty && <Button size="sm" onClick={save}>Guardar</Button>}
             {canManage && !it.is_system && (
               <Button size="sm" variant="ghost" onClick={() => deleteItem.mutate(it.id)}>
                 <Trash2 className="h-4 w-4" />
@@ -216,6 +239,7 @@ function CostsPage() {
         ) : (
           groups.map((g) => {
             const list = (items ?? []).filter((i) => i.category === g.key);
+            const showRm = g.key === "variable_input";
             return (
               <div key={g.key} className="rounded-xl border bg-card shadow-card">
                 <div className="border-b p-4">
@@ -228,12 +252,13 @@ function CostsPage() {
                       <TableHead>Concepto</TableHead>
                       <TableHead>Unidad</TableHead>
                       <TableHead className="text-right">Costo</TableHead>
+                      {showRm && <TableHead>Materia prima vinculada</TableHead>}
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {list.length === 0 ? (
-                      <TableRow><TableCell colSpan={4} className="py-6 text-center text-sm text-muted-foreground">Sin elementos</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={showRm ? 5 : 4} className="py-6 text-center text-sm text-muted-foreground">Sin elementos</TableCell></TableRow>
                     ) : list.map((it) => <Row key={it.id} it={it} />)}
                   </TableBody>
                 </Table>
