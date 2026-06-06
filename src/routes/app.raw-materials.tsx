@@ -113,6 +113,18 @@ function RawMaterialsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const deleteRm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("raw_materials" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["raw-materials"] });
+      toast.success("Materia prima eliminada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   function openNew() { setEditing(null); setOpen(true); }
   function openEdit(rm: RawMaterial) { setEditing(rm); setOpen(true); }
 
@@ -173,6 +185,9 @@ function RawMaterialsPage() {
                             <>
                               <Button size="sm" variant="ghost" onClick={() => setAdjustFor(m)}>Ajustar</Button>
                               <Button size="sm" variant="ghost" onClick={() => openEdit(m)}><Pencil className="h-4 w-4" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => {
+                                if (confirm(`¿Eliminar "${m.name}"? Esto removerá su histórico de movimientos.`)) deleteRm.mutate(m.id);
+                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                             </>
                           )}
                           <Button size="sm" variant="ghost" onClick={() => setMovFor(m)}>Hist.</Button>
