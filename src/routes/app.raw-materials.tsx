@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, AlertTriangle, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Pencil, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
