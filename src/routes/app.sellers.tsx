@@ -149,6 +149,16 @@ function SellersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { data: commissions } = useQuery({
+    queryKey: ["seller-commissions"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("seller_commission_summary", { _from: null, _to: null });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
   if (!isAdmin) {
     return (
       <>
@@ -232,6 +242,34 @@ function SellersPage() {
           Para crear un usuario nuevo con acceso al sistema, primero créalo en{" "}
           <a className="underline" href="/app/users">Usuarios</a>; luego podrás asignarle el rol <Badge variant="secondary" className="text-[10px]">vendedor</Badge> desde aquí o desde Usuarios.
         </p>
+        <div className="mt-8 rounded-xl border bg-card shadow-card">
+          <div className="border-b p-4">
+            <h3 className="font-display text-lg">Comisiones (facturas pagadas)</h3>
+            <p className="text-xs text-muted-foreground">Calculado por paquete vendido en facturas con estado pagado. Configura tasas globales en Costos/Configuración y override por cliente.</p>
+          </div>
+          <div className="p-4">
+            {(commissions ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin comisiones generadas aún.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr><th className="py-2">Vendedor</th><th className="text-right">Paquetes</th><th className="text-right">Comisión</th></tr>
+                </thead>
+                <tbody>
+                  {(commissions ?? []).map((c: any) => (
+                    <tr key={c.seller_id} className="border-t">
+                      <td className="py-2">{c.seller_name}</td>
+                      <td className="text-right tabular-nums">{Number(c.packages).toLocaleString("es-CO")}</td>
+                      <td className="text-right tabular-nums font-medium">
+                        {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(c.commission))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
 
       <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setPickUserId(""); }}>

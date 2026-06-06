@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Banknote, Smartphone, Gift, Wallet, MinusCircle, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Banknote, Smartphone, Gift, Wallet, MinusCircle, ArrowDownCircle, ArrowUpCircle, ShoppingCart } from "lucide-react";
 import { fmtMoney } from "@/lib/export";
 import { toast } from "sonner";
 
@@ -54,6 +54,12 @@ function CashboxPage() {
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   const [outOpen, setOutOpen] = useState(false);
+  const [buyOpen, setBuyOpen] = useState(false);
+
+  const { data: rawMaterials } = useQuery({
+    queryKey: ["raw-materials-min"],
+    queryFn: async () => (await supabase.from("raw_materials" as any).select("id, name, unit").eq("active", true).order("name")).data ?? [],
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["cashbox", from, to],
@@ -129,6 +135,23 @@ function CashboxPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const purchaseRm = useMutation({
+    mutationFn: async (i: { raw_material_id: string; quantity: number; unit_cost: number; method: string; reference: string; password: string }) => {
+      const { error } = await (supabase as any).rpc("purchase_raw_material", {
+        _raw_material_id: i.raw_material_id, _quantity: i.quantity, _unit_cost: i.unit_cost,
+        _method: i.method, _reference: i.reference, _password: i.password,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cashbox"] });
+      qc.invalidateQueries({ queryKey: ["raw-materials"] });
+      toast.success("Compra registrada: stock e ingreso reflejados");
+      setBuyOpen(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const cards = [
     { key: "cash", label: "Efectivo", icon: Banknote, accent: "bg-gradient-primary" },
     { key: "nequi", label: "Nequi", icon: Smartphone, accent: "bg-gradient-gold" },
@@ -151,12 +174,75 @@ function CashboxPage() {
         title="Caja"
         description="Dinero recaudado y salidas de efectivo por método de pago."
         actions={
-          <Dialog open={outOpen} onOpenChange={setOutOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <MinusCircle className="mr-1 h-4 w-4" /> Registrar salida
-              </Button>
-            </DialogTrigger>
+          <>
+            <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <ShoppingCart className="mr-1 h-4 w-4" /> Compra de insumos
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="font-display">Compra rápida de materia prima</DialogTitle>
+                </DialogHeader>
+                <form
+                  className="space-y-3"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const fd = new FormData(e.currentTarget);
+                    purchaseRm.mutate({
+                      raw_material_id: String(fd.get("raw_material_id") || ""),
+                      quantity: Number(fd.get("quantity") || 0),
+                      unit_cost: Number(fd.get("unit_cost") || 0),
+                      method: String(fd.get("method") || "cash"),
+                      reference: String(fd.get("reference") || ""),
+                      password: String(fd.get("password") || ""),
+                    });
+                  }}
+                >
+                  <div className="space-y-2">
+                    <Label>Materia prima</Label>
+                    <Select name="raw_material_id" required>
+                      <SelectTrigger><SelectValue placeholder="Selecciona…" /></SelectTrigger>
+                      <SelectContent>
+                        {(rawMaterials ?? []).map((rm: any) => (
+                          <SelectItem key={rm.id} value={rm.id}>{rm.name} ({rm.unit})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2"><Label>Cantidad</Label><Input name="quantity" type="number" step="0.01" min="0.01" required /></div>
+                    <div className="space-y-2"><Label>Costo unitario</Label><Input name="unit_cost" type="number" step="0.01" min="0" required /></div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Método de pago</Label>
+                    <Select name="method" defaultValue="cash">
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Efectivo</SelectItem>
+                        <SelectItem value="nequi">Nequi</SelectItem>
+                        <SelectItem value="daviplata">Daviplata</SelectItem>
+                        <SelectItem value="transfer">Transferencia</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2"><Label>Referencia</Label><Input name="reference" /></div>
+                  <div className="space-y-2"><Label>Clave de autorización</Label><Input name="password" type="password" required autoComplete="off" /></div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={purchaseRm.isPending} className="bg-gradient-primary">
+                      {purchaseRm.isPending ? "Guardando…" : "Registrar compra"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={outOpen} onOpenChange={setOutOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <MinusCircle className="mr-1 h-4 w-4" /> Registrar salida
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="font-display">Registrar salida de caja</DialogTitle>
@@ -225,6 +311,7 @@ function CashboxPage() {
               </form>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
       <div className="space-y-6 p-6">
