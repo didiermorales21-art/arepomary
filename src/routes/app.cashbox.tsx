@@ -311,6 +311,7 @@ function CashboxPage() {
               </form>
             </DialogContent>
           </Dialog>
+          </>
         }
       />
       <div className="space-y-6 p-6">
