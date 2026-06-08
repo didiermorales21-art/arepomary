@@ -77,9 +77,12 @@ function ProductionPage() {
   });
   const { data: suppliers } = useQuery({
     queryKey: ["suppliers-min"],
-    queryFn: async () =>
-      (await supabase.from("suppliers" as any).select("id, name, cost_item_id").eq("active", true).order("name")).data ?? [],
+    queryFn: async () => {
+      const { data } = await supabase.from("suppliers" as any).select("id, name, cost_item_id").eq("active", true).order("name");
+      return (data as any[]) ?? [];
+    },
   });
+
 
   const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
   const labor  = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_labor"), [costItems]);
