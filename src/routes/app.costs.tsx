@@ -93,8 +93,14 @@ function CostsPage() {
       qc.invalidateQueries({ queryKey: ["cost_items"] });
       toast.success("Eliminado");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message || "");
+      if (msg.includes("foreign key") || msg.includes("violates")) {
+        toast.error("No se puede eliminar: el costo está siendo usado en lotes de producción o proveedores.");
+      } else toast.error(msg || "Error al eliminar");
+    },
   });
+
 
   function Row({ it }: { it: any }) {
     const [name, setName] = useState<string>(it.name);
