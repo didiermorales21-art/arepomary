@@ -93,8 +93,14 @@ function CostsPage() {
       qc.invalidateQueries({ queryKey: ["cost_items"] });
       toast.success("Eliminado");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: any) => {
+      const msg = String(e?.message || "");
+      if (msg.includes("foreign key") || msg.includes("violates")) {
+        toast.error("No se puede eliminar: el costo está siendo usado en lotes de producción o proveedores.");
+      } else toast.error(msg || "Error al eliminar");
+    },
   });
+
 
   function Row({ it }: { it: any }) {
     const [name, setName] = useState<string>(it.name);
@@ -157,13 +163,16 @@ function CostsPage() {
         <TableCell className="w-[160px]">
           <div className="flex justify-end gap-2">
             {canManage && dirty && <Button size="sm" onClick={save}>Guardar</Button>}
-            {canManage && !it.is_system && (
-              <Button size="sm" variant="ghost" onClick={() => deleteItem.mutate(it.id)}>
+            {canManage && (
+              <Button size="sm" variant="ghost" onClick={() => {
+                if (confirm(`¿Eliminar "${it.name}"? Esta acción no se puede deshacer.`)) deleteItem.mutate(it.id);
+              }}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
         </TableCell>
+
       </TableRow>
     );
   }
