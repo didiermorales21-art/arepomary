@@ -75,6 +75,11 @@ function ProductionPage() {
       return (data as any[]) ?? [];
     },
   });
+  const { data: suppliers } = useQuery({
+    queryKey: ["suppliers-min"],
+    queryFn: async () =>
+      (await supabase.from("suppliers" as any).select("id, name, cost_item_id").eq("active", true).order("name")).data ?? [],
+  });
 
   const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
   const labor  = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_labor"), [costItems]);
@@ -96,6 +101,7 @@ function ProductionPage() {
     const totalUnits = otherUnits + producedQty;
     return { perUnit: totalUnits ? monthlyFixed / totalUnits : 0, monthlyFixed, monthlyUnits: totalUnits };
   }
+
 
   function NewBatchForm() {
     const [productId, setProductId] = useState("");
