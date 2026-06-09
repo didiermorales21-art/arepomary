@@ -70,17 +70,22 @@ function PayablesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bills")
-        .select("id, bill_number, supplier_id, issued_at, due_date, total, paid, balance, status, notes")
+        .select("id, bill_number, supplier_id, collaborator_id, issued_at, due_date, total, paid, balance, status, notes" as any)
         .order("issued_at", { ascending: false });
       if (error) throw error;
-      const ids = Array.from(new Set((data ?? []).map((b) => b.supplier_id)));
-      const { data: sup } = ids.length
-        ? await supabase.from("suppliers").select("id, name").in("id", ids)
-        : { data: [] };
-      const m = new Map((sup ?? []).map((s) => [s.id, s.name]));
-      return (data ?? []).map((b) => ({ ...b, supplier_name: m.get(b.supplier_id) })) as BillRow[];
+      const rows = (data ?? []) as any[];
+      const supIds = Array.from(new Set(rows.map((b) => b.supplier_id).filter((x): x is string => !!x)));
+      const colIds = Array.from(new Set(rows.map((b) => b.collaborator_id).filter((x): x is string => !!x)));
+      const [{ data: sup }, { data: cols }] = await Promise.all([
+        supIds.length ? supabase.from("suppliers").select("id, name").in("id", supIds) : Promise.resolve({ data: [] as any[] }),
+        colIds.length ? supabase.from("collaborators" as any).select("id, full_name").in("id", colIds) : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const ms = new Map((sup ?? []).map((s: any) => [s.id, s.name]));
+      const mc = new Map((cols ?? []).map((c: any) => [c.id, c.full_name]));
+      return rows.map((b) => ({ ...b, supplier_name: (b.supplier_id && ms.get(b.supplier_id)) || (b.collaborator_id && mc.get(b.collaborator_id)) || "—" })) as BillRow[];
     },
   });
+
 
   const createBill = useMutation({
     mutationFn: async (input: { supplier_id: string; due_date: string; description: string; amount: number; tax: number; raw_material_id: string; quantity: number }) => {
