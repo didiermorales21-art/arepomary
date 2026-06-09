@@ -270,14 +270,15 @@ function ProductionPage() {
     const [openD, setOpenD] = useState(false);
     const [inputQty, setInputQty] = useState<Record<string, number>>({});
     const [laborQty, setLaborQty] = useState<Record<string, number>>({});
-    const [laborSupplier, setLaborSupplier] = useState<Record<string, string>>(() => {
-      const init: Record<string, string> = {};
+    const [laborPeople, setLaborPeople] = useState<Record<string, string[]>>(() => {
+      const init: Record<string, string[]> = {};
       (labor ?? []).forEach((c) => {
-        const sup = (suppliers ?? []).find((s: any) => s.cost_item_id === c.id);
-        if (sup) init[c.id] = sup.id;
+        const matches = (collaborators ?? []).filter((s: any) => s.cost_item_id === c.id).map((s: any) => s.id);
+        if (matches.length) init[c.id] = matches;
       });
       return init;
     });
+
 
     const inputCost = inputs.reduce((s, c) => s + (inputQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
     const laborCost = labor.reduce((s, c) => s + (laborQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
