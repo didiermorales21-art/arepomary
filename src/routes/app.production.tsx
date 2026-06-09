@@ -170,11 +170,11 @@ function ProductionPage() {
 
   const completeBatch = useMutation({
     mutationFn: async ({
-      batch, producedQty, warehouseId, inputQty, laborQty, laborSupplier,
+      batch, producedQty, warehouseId, inputQty, laborQty, laborPeople,
     }: {
       batch: any; producedQty: number; warehouseId: string;
       inputQty: Record<string, number>; laborQty: Record<string, number>;
-      laborSupplier: Record<string, string>;
+      laborPeople: Record<string, string[]>;
     }) => {
       const inputCost = inputs.reduce((s, c) => s + (inputQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
       const laborCost = labor.reduce((s, c) => s + (laborQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
@@ -186,7 +186,6 @@ function ProductionPage() {
       const totalCost = inputCost + laborCost + fixedAllocated;
       const unitCost = producedQty > 0 ? totalCost / producedQty : 0;
 
-      // Insert production_costs at completion → triggers deduct raw materials
       const costRows = [
         ...inputs.filter((c) => (inputQty[c.id] || 0) > 0).map((c) => ({
           batch_id: batch.id, cost_item_id: c.id,
@@ -228,22 +227,26 @@ function ProductionPage() {
       });
       if (mvErr) throw mvErr;
 
-      // Generate cuentas por pagar for labor with assigned supplier
+      // Generate accounts payable to collaborators (split labor qty equally among assigned people)
       for (const c of labor) {
         const qty = laborQty[c.id] || 0;
-        const supId = laborSupplier[c.id];
-        if (qty > 0 && supId) {
+        const people = (laborPeople[c.id] || []).filter(Boolean);
+        if (qty <= 0 || people.length === 0) continue;
+        const perPerson = qty / people.length;
+        const unitPrice = Number(c.unit_cost || 0);
+        for (const collabId of people) {
           const { data: bill, error: bErr } = await supabase.from("bills" as any).insert({
-            supplier_id: supId,
+            collaborator_id: collabId,
             notes: `Mano de obra ${c.name} · Lote #${batch.batch_number}`,
+            status: "received",
             created_by: user?.id ?? null,
           }).select("id").single();
           if (bErr) throw bErr;
           const { error: biErr } = await supabase.from("bill_items" as any).insert({
             bill_id: (bill as any).id,
             description: `${c.name} - Lote #${batch.batch_number}`,
-            quantity: qty,
-            unit_price: Number(c.unit_cost || 0),
+            quantity: perPerson,
+            unit_price: unitPrice,
           });
           if (biErr) throw biErr;
         }
@@ -259,6 +262,7 @@ function ProductionPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   function CompleteDialog({ batch }: { batch: any }) {
     const [qty, setQty] = useState<number>(Number(batch.planned_quantity));
