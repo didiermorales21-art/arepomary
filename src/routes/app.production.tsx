@@ -390,7 +390,7 @@ function ProductionPage() {
                 if (!wh) return toast.error("Selecciona almacén");
                 if (!qty || qty <= 0) return toast.error("Cantidad inválida");
                 completeBatch.mutate(
-                  { batch, producedQty: qty, warehouseId: wh, inputQty, laborQty, laborSupplier },
+                  { batch, producedQty: qty, warehouseId: wh, inputQty, laborQty, laborPeople },
                   { onSuccess: () => setOpenD(false) }
                 );
               }}
