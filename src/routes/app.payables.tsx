@@ -25,7 +25,8 @@ export const Route = createFileRoute("/app/payables")({
 type BillRow = {
   id: string;
   bill_number: number;
-  supplier_id: string;
+  supplier_id: string | null;
+  collaborator_id?: string | null;
   issued_at: string;
   due_date: string | null;
   total: number;
@@ -35,6 +36,7 @@ type BillRow = {
   notes: string | null;
   supplier_name?: string;
 };
+
 
 function statusVariant(s: string): "default" | "secondary" | "outline" | "destructive" {
   if (s === "paid") return "default";
