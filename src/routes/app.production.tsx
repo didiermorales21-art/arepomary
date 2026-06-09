@@ -336,26 +336,39 @@ function ProductionPage() {
                 <p className="text-xs text-muted-foreground">No hay mano de obra. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
               ) : (
                 <div className="space-y-2">
-                  {labor.map((c) => (
-                    <div key={c.id} className="grid grid-cols-[1fr_80px_1fr] gap-2 items-end">
-                      <Label className="text-[11px] leading-tight truncate">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
-                      <Input type="number" min="0" step="1" className="h-7 text-sm"
-                        placeholder="Cant."
-                        value={laborQty[c.id] ?? ""}
-                        onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
-                      />
-                      <Select value={laborSupplier[c.id] || "__none__"} onValueChange={(v) => setLaborSupplier({ ...laborSupplier, [c.id]: v === "__none__" ? "" : v })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Empleado" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Sin cuenta por pagar</SelectItem>
-                          {(suppliers ?? []).map((s: any) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  {labor.map((c) => {
+                    const selected = laborPeople[c.id] || [];
+                    const togglePerson = (id: string) => {
+                      const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
+                      setLaborPeople({ ...laborPeople, [c.id]: next });
+                    };
+                    return (
+                      <div key={c.id} className="rounded border p-2 space-y-1.5">
+                        <div className="grid grid-cols-[1fr_90px] gap-2 items-end">
+                          <Label className="text-[11px] leading-tight truncate">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
+                          <Input type="number" min="0" step="1" className="h-7 text-sm"
+                            placeholder="Cantidad"
+                            value={laborQty[c.id] ?? ""}
+                            onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(collaborators ?? []).length === 0 ? (
+                            <span className="text-[11px] text-muted-foreground">No hay colaboradores. <Link to="/app/collaborators" className="underline">Crear</Link></span>
+                          ) : (collaborators ?? []).map((p: any) => (
+                            <button
+                              type="button"
+                              key={p.id}
+                              onClick={() => togglePerson(p.id)}
+                              className={`rounded-full border px-2 py-0.5 text-[11px] ${selected.includes(p.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+                            >{p.full_name}</button>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                  <p className="text-[11px] text-muted-foreground">Si seleccionas un proveedor/empleado, se generará una cuenta por pagar automáticamente.</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[11px] text-muted-foreground">La cantidad se divide entre las personas seleccionadas y se genera una cuenta por pagar para cada colaborador.</p>
+
                 </div>
               )}
             </div>
