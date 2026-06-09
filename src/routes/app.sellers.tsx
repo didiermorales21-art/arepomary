@@ -244,24 +244,27 @@ function SellersPage() {
         </p>
         <div className="mt-8 rounded-xl border bg-card shadow-card">
           <div className="border-b p-4">
-            <h3 className="font-display text-lg">Comisiones (facturas pagadas)</h3>
-            <p className="text-xs text-muted-foreground">Calculado por paquete vendido en facturas con estado pagado. Configura tasas globales en Costos/Configuración y override por cliente.</p>
+            <h3 className="font-display text-lg">Comisiones por pagar</h3>
+            <p className="text-xs text-muted-foreground">Calculado por paquete vendido en facturas pagadas (excluye comisiones ya pagadas).</p>
           </div>
           <div className="p-4">
-            {(commissions ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin comisiones generadas aún.</p>
+            {(commissions ?? []).filter((c: any) => Number(c.commission) > 0).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay comisiones pendientes.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
-                  <tr><th className="py-2">Vendedor</th><th className="text-right">Paquetes</th><th className="text-right">Comisión</th></tr>
+                  <tr><th className="py-2">Vendedor</th><th className="text-right">Paquetes</th><th className="text-right">Comisión</th><th></th></tr>
                 </thead>
                 <tbody>
-                  {(commissions ?? []).map((c: any) => (
+                  {(commissions ?? []).filter((c: any) => Number(c.commission) > 0).map((c: any) => (
                     <tr key={c.seller_id} className="border-t">
                       <td className="py-2">{c.seller_name}</td>
                       <td className="text-right tabular-nums">{Number(c.packages).toLocaleString("es-CO")}</td>
                       <td className="text-right tabular-nums font-medium">
                         {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(c.commission))}
+                      </td>
+                      <td className="text-right">
+                        <Button size="sm" variant="outline" onClick={() => setPayCommission({ seller_id: c.seller_id, seller_name: c.seller_name, amount: Number(c.commission) })}>Pagar</Button>
                       </td>
                     </tr>
                   ))}
@@ -270,6 +273,7 @@ function SellersPage() {
             )}
           </div>
         </div>
+
       </div>
 
       <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setPickUserId(""); }}>
