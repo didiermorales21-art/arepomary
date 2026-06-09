@@ -75,13 +75,14 @@ function ProductionPage() {
       return (data as any[]) ?? [];
     },
   });
-  const { data: suppliers } = useQuery({
-    queryKey: ["suppliers-min"],
+  const { data: collaborators } = useQuery({
+    queryKey: ["collaborators-min"],
     queryFn: async () => {
-      const { data } = await supabase.from("suppliers" as any).select("id, name, cost_item_id").eq("active", true).order("name");
+      const { data } = await supabase.from("collaborators" as any).select("id, full_name, cost_item_id").eq("active", true).order("first_name");
       return (data as any[]) ?? [];
     },
   });
+
 
 
   const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
