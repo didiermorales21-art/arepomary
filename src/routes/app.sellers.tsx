@@ -46,6 +46,8 @@ function SellersPage() {
   const [editing, setEditing] = useState<Seller | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [pickUserId, setPickUserId] = useState<string>("");
+  const [payCommission, setPayCommission] = useState<{ seller_id: string; seller_name: string; amount: number } | null>(null);
+
 
   const { data: sellers, isLoading } = useQuery({
     queryKey: ["sellers-list"],
@@ -159,6 +161,38 @@ function SellersPage() {
     },
   });
 
+  const { data: pendingInvoices } = useQuery({
+    queryKey: ["seller-pending-invoices", payCommission?.seller_id],
+    enabled: !!payCommission?.seller_id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("seller_pending_commission_invoices", { _seller_id: payCommission!.seller_id });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
+  const payCommissionMutation = useMutation({
+    mutationFn: async (input: { method: string; password: string; reference: string }) => {
+      if (!payCommission) throw new Error("Sin selección");
+      const { error } = await (supabase as any).rpc("pay_seller_commissions", {
+        _seller_id: payCommission.seller_id,
+        _method: input.method,
+        _password: input.password,
+        _reference: input.reference,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["seller-commissions"] });
+      qc.invalidateQueries({ queryKey: ["seller-pending-invoices"] });
+      qc.invalidateQueries({ queryKey: ["cashbox"] });
+      toast.success("Comisión pagada y descontada de caja");
+      setPayCommission(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   if (!isAdmin) {
     return (
       <>
@@ -244,24 +278,27 @@ function SellersPage() {
         </p>
         <div className="mt-8 rounded-xl border bg-card shadow-card">
           <div className="border-b p-4">
-            <h3 className="font-display text-lg">Comisiones (facturas pagadas)</h3>
-            <p className="text-xs text-muted-foreground">Calculado por paquete vendido en facturas con estado pagado. Configura tasas globales en Costos/Configuración y override por cliente.</p>
+            <h3 className="font-display text-lg">Comisiones por pagar</h3>
+            <p className="text-xs text-muted-foreground">Calculado por paquete vendido en facturas pagadas (excluye comisiones ya pagadas).</p>
           </div>
           <div className="p-4">
-            {(commissions ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin comisiones generadas aún.</p>
+            {(commissions ?? []).filter((c: any) => Number(c.commission) > 0).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay comisiones pendientes.</p>
             ) : (
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
-                  <tr><th className="py-2">Vendedor</th><th className="text-right">Paquetes</th><th className="text-right">Comisión</th></tr>
+                  <tr><th className="py-2">Vendedor</th><th className="text-right">Paquetes</th><th className="text-right">Comisión</th><th></th></tr>
                 </thead>
                 <tbody>
-                  {(commissions ?? []).map((c: any) => (
+                  {(commissions ?? []).filter((c: any) => Number(c.commission) > 0).map((c: any) => (
                     <tr key={c.seller_id} className="border-t">
                       <td className="py-2">{c.seller_name}</td>
                       <td className="text-right tabular-nums">{Number(c.packages).toLocaleString("es-CO")}</td>
                       <td className="text-right tabular-nums font-medium">
                         {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(Number(c.commission))}
+                      </td>
+                      <td className="text-right">
+                        <Button size="sm" variant="outline" onClick={() => setPayCommission({ seller_id: c.seller_id, seller_name: c.seller_name, amount: Number(c.commission) })}>Pagar</Button>
                       </td>
                     </tr>
                   ))}
@@ -270,6 +307,7 @@ function SellersPage() {
             )}
           </div>
         </div>
+
       </div>
 
       <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setPickUserId(""); }}>
@@ -354,6 +392,76 @@ function SellersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!payCommission} onOpenChange={(o) => !o && setPayCommission(null)}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Pagar comisión a {payCommission?.seller_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border p-3 max-h-48 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr><th>Factura</th><th>Cliente</th><th className="text-right">Paq.</th><th className="text-right">Comisión</th></tr>
+                </thead>
+                <tbody>
+                  {(pendingInvoices ?? []).map((p: any) => (
+                    <tr key={p.invoice_id} className="border-t">
+                      <td className="py-1">#{p.invoice_number}</td>
+                      <td>{p.customer_name}</td>
+                      <td className="text-right tabular-nums">{Number(p.packages)}</td>
+                      <td className="text-right tabular-nums">{new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(p.amount))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                payCommissionMutation.mutate({
+                  method: String(fd.get("method") || "cash"),
+                  password: String(fd.get("password") || ""),
+                  reference: String(fd.get("reference") || ""),
+                });
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Método de pago</Label>
+                  <Select name="method" defaultValue="cash">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Efectivo</SelectItem>
+                      <SelectItem value="nequi">Nequi</SelectItem>
+                      <SelectItem value="daviplata">Daviplata</SelectItem>
+                      <SelectItem value="transfer">Transferencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Referencia</Label>
+                  <Input name="reference" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Clave de autorización</Label>
+                <Input name="password" type="password" required autoComplete="off" />
+              </div>
+              <div className="rounded-md bg-muted/40 p-2 text-sm flex justify-between">
+                <span>Total a pagar:</span>
+                <span className="font-semibold">{new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(payCommission?.amount ?? 0)}</span>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={payCommissionMutation.isPending} className="bg-gradient-primary">
+                  {payCommissionMutation.isPending ? "Pagando…" : "Confirmar pago"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+

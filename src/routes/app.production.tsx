@@ -75,13 +75,14 @@ function ProductionPage() {
       return (data as any[]) ?? [];
     },
   });
-  const { data: suppliers } = useQuery({
-    queryKey: ["suppliers-min"],
+  const { data: collaborators } = useQuery({
+    queryKey: ["collaborators-min"],
     queryFn: async () => {
-      const { data } = await supabase.from("suppliers" as any).select("id, name, cost_item_id").eq("active", true).order("name");
+      const { data } = await supabase.from("collaborators" as any).select("id, full_name, cost_item_id").eq("active", true).order("first_name");
       return (data as any[]) ?? [];
     },
   });
+
 
 
   const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
@@ -169,11 +170,11 @@ function ProductionPage() {
 
   const completeBatch = useMutation({
     mutationFn: async ({
-      batch, producedQty, warehouseId, inputQty, laborQty, laborSupplier,
+      batch, producedQty, warehouseId, inputQty, laborQty, laborPeople,
     }: {
       batch: any; producedQty: number; warehouseId: string;
       inputQty: Record<string, number>; laborQty: Record<string, number>;
-      laborSupplier: Record<string, string>;
+      laborPeople: Record<string, string[]>;
     }) => {
       const inputCost = inputs.reduce((s, c) => s + (inputQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
       const laborCost = labor.reduce((s, c) => s + (laborQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
@@ -185,7 +186,6 @@ function ProductionPage() {
       const totalCost = inputCost + laborCost + fixedAllocated;
       const unitCost = producedQty > 0 ? totalCost / producedQty : 0;
 
-      // Insert production_costs at completion → triggers deduct raw materials
       const costRows = [
         ...inputs.filter((c) => (inputQty[c.id] || 0) > 0).map((c) => ({
           batch_id: batch.id, cost_item_id: c.id,
@@ -227,22 +227,26 @@ function ProductionPage() {
       });
       if (mvErr) throw mvErr;
 
-      // Generate cuentas por pagar for labor with assigned supplier
+      // Generate accounts payable to collaborators (split labor qty equally among assigned people)
       for (const c of labor) {
         const qty = laborQty[c.id] || 0;
-        const supId = laborSupplier[c.id];
-        if (qty > 0 && supId) {
+        const people = (laborPeople[c.id] || []).filter(Boolean);
+        if (qty <= 0 || people.length === 0) continue;
+        const perPerson = qty / people.length;
+        const unitPrice = Number(c.unit_cost || 0);
+        for (const collabId of people) {
           const { data: bill, error: bErr } = await supabase.from("bills" as any).insert({
-            supplier_id: supId,
+            collaborator_id: collabId,
             notes: `Mano de obra ${c.name} · Lote #${batch.batch_number}`,
+            status: "received",
             created_by: user?.id ?? null,
           }).select("id").single();
           if (bErr) throw bErr;
           const { error: biErr } = await supabase.from("bill_items" as any).insert({
             bill_id: (bill as any).id,
             description: `${c.name} - Lote #${batch.batch_number}`,
-            quantity: qty,
-            unit_price: Number(c.unit_cost || 0),
+            quantity: perPerson,
+            unit_price: unitPrice,
           });
           if (biErr) throw biErr;
         }
@@ -259,20 +263,22 @@ function ProductionPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+
   function CompleteDialog({ batch }: { batch: any }) {
     const [qty, setQty] = useState<number>(Number(batch.planned_quantity));
     const [wh, setWh] = useState<string>("");
     const [openD, setOpenD] = useState(false);
     const [inputQty, setInputQty] = useState<Record<string, number>>({});
     const [laborQty, setLaborQty] = useState<Record<string, number>>({});
-    const [laborSupplier, setLaborSupplier] = useState<Record<string, string>>(() => {
-      const init: Record<string, string> = {};
+    const [laborPeople, setLaborPeople] = useState<Record<string, string[]>>(() => {
+      const init: Record<string, string[]> = {};
       (labor ?? []).forEach((c) => {
-        const sup = (suppliers ?? []).find((s: any) => s.cost_item_id === c.id);
-        if (sup) init[c.id] = sup.id;
+        const matches = (collaborators ?? []).filter((s: any) => s.cost_item_id === c.id).map((s: any) => s.id);
+        if (matches.length) init[c.id] = matches;
       });
       return init;
     });
+
 
     const inputCost = inputs.reduce((s, c) => s + (inputQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
     const laborCost = labor.reduce((s, c) => s + (laborQty[c.id] || 0) * Number(c.unit_cost || 0), 0);
@@ -330,26 +336,39 @@ function ProductionPage() {
                 <p className="text-xs text-muted-foreground">No hay mano de obra. <Link to="/app/costs" className="underline">Ir a Costos</Link></p>
               ) : (
                 <div className="space-y-2">
-                  {labor.map((c) => (
-                    <div key={c.id} className="grid grid-cols-[1fr_80px_1fr] gap-2 items-end">
-                      <Label className="text-[11px] leading-tight truncate">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
-                      <Input type="number" min="0" step="1" className="h-7 text-sm"
-                        placeholder="Cant."
-                        value={laborQty[c.id] ?? ""}
-                        onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
-                      />
-                      <Select value={laborSupplier[c.id] || "__none__"} onValueChange={(v) => setLaborSupplier({ ...laborSupplier, [c.id]: v === "__none__" ? "" : v })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Empleado" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">Sin cuenta por pagar</SelectItem>
-                          {(suppliers ?? []).map((s: any) => (
-                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  {labor.map((c) => {
+                    const selected = laborPeople[c.id] || [];
+                    const togglePerson = (id: string) => {
+                      const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
+                      setLaborPeople({ ...laborPeople, [c.id]: next });
+                    };
+                    return (
+                      <div key={c.id} className="rounded border p-2 space-y-1.5">
+                        <div className="grid grid-cols-[1fr_90px] gap-2 items-end">
+                          <Label className="text-[11px] leading-tight truncate">{c.name} · {fmt(c.unit_cost)}/{c.unit}</Label>
+                          <Input type="number" min="0" step="1" className="h-7 text-sm"
+                            placeholder="Cantidad"
+                            value={laborQty[c.id] ?? ""}
+                            onChange={(e) => setLaborQty({ ...laborQty, [c.id]: Number(e.target.value) })}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(collaborators ?? []).length === 0 ? (
+                            <span className="text-[11px] text-muted-foreground">No hay colaboradores. <Link to="/app/collaborators" className="underline">Crear</Link></span>
+                          ) : (collaborators ?? []).map((p: any) => (
+                            <button
+                              type="button"
+                              key={p.id}
+                              onClick={() => togglePerson(p.id)}
+                              className={`rounded-full border px-2 py-0.5 text-[11px] ${selected.includes(p.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+                            >{p.full_name}</button>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  ))}
-                  <p className="text-[11px] text-muted-foreground">Si seleccionas un proveedor/empleado, se generará una cuenta por pagar automáticamente.</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-[11px] text-muted-foreground">La cantidad se divide entre las personas seleccionadas y se genera una cuenta por pagar para cada colaborador.</p>
+
                 </div>
               )}
             </div>
@@ -371,7 +390,7 @@ function ProductionPage() {
                 if (!wh) return toast.error("Selecciona almacén");
                 if (!qty || qty <= 0) return toast.error("Cantidad inválida");
                 completeBatch.mutate(
-                  { batch, producedQty: qty, warehouseId: wh, inputQty, laborQty, laborSupplier },
+                  { batch, producedQty: qty, warehouseId: wh, inputQty, laborQty, laborPeople },
                   { onSuccess: () => setOpenD(false) }
                 );
               }}

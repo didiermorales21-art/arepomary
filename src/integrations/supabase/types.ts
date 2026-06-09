@@ -140,6 +140,7 @@ export type Database = {
         Row: {
           balance: number | null
           bill_number: number
+          collaborator_id: string | null
           created_at: string
           created_by: string | null
           due_date: string | null
@@ -149,7 +150,7 @@ export type Database = {
           paid: number
           status: Database["public"]["Enums"]["bill_status"]
           subtotal: number
-          supplier_id: string
+          supplier_id: string | null
           tax: number
           total: number
           updated_at: string
@@ -157,6 +158,7 @@ export type Database = {
         Insert: {
           balance?: number | null
           bill_number?: number
+          collaborator_id?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
@@ -166,7 +168,7 @@ export type Database = {
           paid?: number
           status?: Database["public"]["Enums"]["bill_status"]
           subtotal?: number
-          supplier_id: string
+          supplier_id?: string | null
           tax?: number
           total?: number
           updated_at?: string
@@ -174,6 +176,7 @@ export type Database = {
         Update: {
           balance?: number | null
           bill_number?: number
+          collaborator_id?: string | null
           created_at?: string
           created_by?: string | null
           due_date?: string | null
@@ -183,12 +186,19 @@ export type Database = {
           paid?: number
           status?: Database["public"]["Enums"]["bill_status"]
           subtotal?: number
-          supplier_id?: string
+          supplier_id?: string | null
           tax?: number
           total?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bills_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bills_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -233,6 +243,145 @@ export type Database = {
           reference?: string | null
         }
         Relationships: []
+      }
+      collaborators: {
+        Row: {
+          active: boolean
+          cost_item_id: string | null
+          created_at: string
+          document_id: string | null
+          email: string | null
+          first_name: string
+          full_name: string | null
+          id: string
+          last_name: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          cost_item_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          email?: string | null
+          first_name: string
+          full_name?: string | null
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          cost_item_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          email?: string | null
+          first_name?: string
+          full_name?: string | null
+          id?: string
+          last_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborators_cost_item_id_fkey"
+            columns: ["cost_item_id"]
+            isOneToOne: false
+            referencedRelation: "cost_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_payment_items: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_id: string
+          packages: number
+          payment_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id: string
+          packages?: number
+          payment_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_id?: string
+          packages?: number
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payment_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: true
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_payment_items_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "commission_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commission_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          method: Database["public"]["Enums"]["payment_method"]
+          packages: number
+          paid_at: string
+          recorded_by: string | null
+          reference: string | null
+          seller_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          method: Database["public"]["Enums"]["payment_method"]
+          packages?: number
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          seller_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          method?: Database["public"]["Enums"]["payment_method"]
+          packages?: number
+          paid_at?: string
+          recorded_by?: string | null
+          reference?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_payments_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -1583,6 +1732,15 @@ export type Database = {
           seller_id: string
         }[]
       }
+      pay_seller_commissions: {
+        Args: {
+          _method: string
+          _password: string
+          _reference?: string
+          _seller_id: string
+        }
+        Returns: string
+      }
       purchase_raw_material: {
         Args: {
           _method: string
@@ -1619,6 +1777,18 @@ export type Database = {
           packages: number
           seller_id: string
           seller_name: string
+        }[]
+      }
+      seller_pending_commission_invoices: {
+        Args: { _seller_id: string }
+        Returns: {
+          amount: number
+          customer_name: string
+          invoice_id: string
+          invoice_number: number
+          issued_at: string
+          packages: number
+          rate: number
         }[]
       }
     }

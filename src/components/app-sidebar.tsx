@@ -71,9 +71,11 @@ const navAdmin = [
   { title: "Analytics", url: "/app/analytics", icon: BarChart3, soon: false },
   { title: "Usuarios", url: "/app/users", icon: UserCog, soon: false },
   { title: "Vendedores", url: "/app/sellers", icon: UserCog, soon: false },
+  { title: "Colaboradores", url: "/app/collaborators", icon: UserCog, soon: false },
   { title: "Auditoría", url: "/app/audit", icon: ShieldCheck, soon: false },
   { title: "Configuración", url: "/app/settings", icon: Settings, soon: false },
 ];
+
 
 export function AppSidebar() {
   const { state } = useSidebar();
