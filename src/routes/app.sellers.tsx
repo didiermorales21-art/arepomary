@@ -46,6 +46,8 @@ function SellersPage() {
   const [editing, setEditing] = useState<Seller | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [pickUserId, setPickUserId] = useState<string>("");
+  const [payCommission, setPayCommission] = useState<{ seller_id: string; seller_name: string; amount: number } | null>(null);
+
 
   const { data: sellers, isLoading } = useQuery({
     queryKey: ["sellers-list"],
