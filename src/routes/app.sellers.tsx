@@ -392,6 +392,76 @@ function SellersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!payCommission} onOpenChange={(o) => !o && setPayCommission(null)}>
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Pagar comisión a {payCommission?.seller_name}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border p-3 max-h-48 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left text-muted-foreground">
+                  <tr><th>Factura</th><th>Cliente</th><th className="text-right">Paq.</th><th className="text-right">Comisión</th></tr>
+                </thead>
+                <tbody>
+                  {(pendingInvoices ?? []).map((p: any) => (
+                    <tr key={p.invoice_id} className="border-t">
+                      <td className="py-1">#{p.invoice_number}</td>
+                      <td>{p.customer_name}</td>
+                      <td className="text-right tabular-nums">{Number(p.packages)}</td>
+                      <td className="text-right tabular-nums">{new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(Number(p.amount))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <form
+              className="space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                payCommissionMutation.mutate({
+                  method: String(fd.get("method") || "cash"),
+                  password: String(fd.get("password") || ""),
+                  reference: String(fd.get("reference") || ""),
+                });
+              }}
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Método de pago</Label>
+                  <Select name="method" defaultValue="cash">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Efectivo</SelectItem>
+                      <SelectItem value="nequi">Nequi</SelectItem>
+                      <SelectItem value="daviplata">Daviplata</SelectItem>
+                      <SelectItem value="transfer">Transferencia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Referencia</Label>
+                  <Input name="reference" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Clave de autorización</Label>
+                <Input name="password" type="password" required autoComplete="off" />
+              </div>
+              <div className="rounded-md bg-muted/40 p-2 text-sm flex justify-between">
+                <span>Total a pagar:</span>
+                <span className="font-semibold">{new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",maximumFractionDigits:0}).format(payCommission?.amount ?? 0)}</span>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={payCommissionMutation.isPending} className="bg-gradient-primary">
+                  {payCommissionMutation.isPending ? "Pagando…" : "Confirmar pago"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+
