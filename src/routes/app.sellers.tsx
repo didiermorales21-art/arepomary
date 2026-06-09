@@ -161,6 +161,38 @@ function SellersPage() {
     },
   });
 
+  const { data: pendingInvoices } = useQuery({
+    queryKey: ["seller-pending-invoices", payCommission?.seller_id],
+    enabled: !!payCommission?.seller_id,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("seller_pending_commission_invoices", { _seller_id: payCommission!.seller_id });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
+
+  const payCommissionMutation = useMutation({
+    mutationFn: async (input: { method: string; password: string; reference: string }) => {
+      if (!payCommission) throw new Error("Sin selección");
+      const { error } = await (supabase as any).rpc("pay_seller_commissions", {
+        _seller_id: payCommission.seller_id,
+        _method: input.method,
+        _password: input.password,
+        _reference: input.reference,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["seller-commissions"] });
+      qc.invalidateQueries({ queryKey: ["seller-pending-invoices"] });
+      qc.invalidateQueries({ queryKey: ["cashbox"] });
+      toast.success("Comisión pagada y descontada de caja");
+      setPayCommission(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   if (!isAdmin) {
     return (
       <>
