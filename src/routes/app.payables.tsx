@@ -217,26 +217,6 @@ function PayablesPage() {
           </>
         }
       />
-      <div className="p-6">
-        <div className="rounded-xl border bg-card shadow-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>N°</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Vence</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
-              ) : (bills ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Sin cuentas por pagar.</TableCell></TableRow>
       <div className="p-6 space-y-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
           <TabsList>
