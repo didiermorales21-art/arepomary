@@ -358,6 +358,7 @@ function ZonesPage() {
                   id: editZone.id,
                   name: String(fd.get("name") || ""),
                   description: String(fd.get("description") || ""),
+                  priority: Number(fd.get("priority") || 100),
                 });
               }}
             >
@@ -368,6 +369,11 @@ function ZonesPage() {
               <div className="space-y-2">
                 <Label htmlFor="ez_desc">Descripción</Label>
                 <Input id="ez_desc" name="description" defaultValue={editZone.description || ""} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ez_priority">Prioridad de entrega</Label>
+                <Input id="ez_priority" name="priority" type="number" defaultValue={(editZone as any).priority ?? 100} required />
+                <p className="text-xs text-muted-foreground">Mayor número = mayor prioridad en la ruta.</p>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={updateZone.isPending} className="bg-gradient-primary">
