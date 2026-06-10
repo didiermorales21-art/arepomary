@@ -137,8 +137,12 @@ function PayablesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const cols = ["N°", "Proveedor", "Fecha", "Vence", "Total", "Pagado", "Saldo", "Estado"];
-  const rows = (bills ?? []).map((b) => [b.bill_number, b.supplier_name ?? "—", b.issued_at, b.due_date ?? "—", Number(b.total), Number(b.paid), Number(b.balance), b.status]);
+  const filtered = useMemo(() => {
+    return (bills ?? []).filter((b) => tab === "all" ? true : tab === "labor" ? !!b.collaborator_id : !!b.supplier_id);
+  }, [bills, tab]);
+
+  const cols = ["N°", "Tipo", "Beneficiario", "Fecha", "Vence", "Total", "Pagado", "Saldo", "Estado"];
+  const rows = filtered.map((b) => [b.bill_number, b.collaborator_id ? "Mano de obra" : "Proveedor", b.supplier_name ?? "—", b.issued_at, b.due_date ?? "—", Number(b.total), Number(b.paid), Number(b.balance), b.status]);
 
   return (
     <>
