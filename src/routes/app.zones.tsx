@@ -50,7 +50,7 @@ function ZonesPage() {
   });
 
   const createZone = useMutation({
-    mutationFn: async (input: { name: string; description: string }) => {
+    mutationFn: async (input: { name: string; description: string; priority: number }) => {
       const { error } = await supabase.from("zones").insert(input);
       if (error) throw error;
     },
