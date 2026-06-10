@@ -57,7 +57,14 @@ type OrderRow = {
   delivery_date: string | null;
   driver_id: string | null;
   customer_id: string;
-  customers: { name?: string | null; phone?: string | null; address?: string | null } | null;
+  customers:
+    | {
+        name?: string | null;
+        phone?: string | null;
+        address?: string | null;
+        neighborhoods?: { name?: string | null; zones?: { name?: string | null; priority?: number | null } | null } | null;
+      }
+    | null;
   drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
 };
 
@@ -76,7 +83,7 @@ function LogisticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address), drivers(name, license_plate, phone)")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone)")
         .not("status", "in", "(cancelled)")
         .order("delivery_date", { ascending: true })
         .order("order_number", { ascending: false })
