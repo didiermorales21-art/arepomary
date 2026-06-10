@@ -39,7 +39,8 @@ function ZonesPage() {
 
   const { data: zones, isLoading } = useQuery({
     queryKey: ["zones-full"],
-    queryFn: async () => (await supabase.from("zones").select("*").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("zones").select("*").order("priority", { ascending: false }).order("name")).data ?? [],
   });
 
   const { data: neighborhoods } = useQuery({
