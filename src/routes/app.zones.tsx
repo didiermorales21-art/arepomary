@@ -214,6 +214,7 @@ function ZonesPage() {
                       createZone.mutate({
                         name: String(fd.get("name") || ""),
                         description: String(fd.get("description") || ""),
+                        priority: Number(fd.get("priority") || 100),
                       });
                     }}
                   >
@@ -224,6 +225,11 @@ function ZonesPage() {
                     <div className="space-y-2">
                       <Label htmlFor="description">Descripción</Label>
                       <Input id="description" name="description" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Prioridad de entrega</Label>
+                      <Input id="priority" name="priority" type="number" defaultValue={100} required />
+                      <p className="text-xs text-muted-foreground">Mayor número = mayor prioridad. Las rutas salen primero por los barrios de la zona con mayor prioridad.</p>
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={createZone.isPending} className="bg-gradient-primary">
