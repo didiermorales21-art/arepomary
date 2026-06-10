@@ -39,7 +39,8 @@ function ZonesPage() {
 
   const { data: zones, isLoading } = useQuery({
     queryKey: ["zones-full"],
-    queryFn: async () => (await supabase.from("zones").select("*").order("name")).data ?? [],
+    queryFn: async () =>
+      (await supabase.from("zones").select("*").order("priority", { ascending: false }).order("name")).data ?? [],
   });
 
   const { data: neighborhoods } = useQuery({
@@ -49,7 +50,7 @@ function ZonesPage() {
   });
 
   const createZone = useMutation({
-    mutationFn: async (input: { name: string; description: string }) => {
+    mutationFn: async (input: { name: string; description: string; priority: number }) => {
       const { error } = await supabase.from("zones").insert(input);
       if (error) throw error;
     },
@@ -63,8 +64,8 @@ function ZonesPage() {
   });
 
   const updateZone = useMutation({
-    mutationFn: async (input: { id: string; name: string; description: string }) => {
-      const { error } = await supabase.from("zones").update({ name: input.name, description: input.description }).eq("id", input.id);
+    mutationFn: async (input: { id: string; name: string; description: string; priority: number }) => {
+      const { error } = await supabase.from("zones").update({ name: input.name, description: input.description, priority: input.priority } as any).eq("id", input.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -213,6 +214,7 @@ function ZonesPage() {
                       createZone.mutate({
                         name: String(fd.get("name") || ""),
                         description: String(fd.get("description") || ""),
+                        priority: Number(fd.get("priority") || 100),
                       });
                     }}
                   >
@@ -223,6 +225,11 @@ function ZonesPage() {
                     <div className="space-y-2">
                       <Label htmlFor="description">Descripción</Label>
                       <Input id="description" name="description" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Prioridad de entrega</Label>
+                      <Input id="priority" name="priority" type="number" defaultValue={100} required />
+                      <p className="text-xs text-muted-foreground">Mayor número = mayor prioridad. Las rutas salen primero por los barrios de la zona con mayor prioridad.</p>
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={createZone.isPending} className="bg-gradient-primary">
@@ -252,7 +259,10 @@ function ZonesPage() {
                           <MapPin className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="font-display text-lg font-semibold">{z.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display text-lg font-semibold">{z.name}</h3>
+                            <Badge variant="outline">Prioridad {(z as any).priority ?? 100}</Badge>
+                          </div>
                           {z.description && <p className="mt-1 text-sm text-muted-foreground">{z.description}</p>}
                         </div>
                       </div>
@@ -351,6 +361,7 @@ function ZonesPage() {
                   id: editZone.id,
                   name: String(fd.get("name") || ""),
                   description: String(fd.get("description") || ""),
+                  priority: Number(fd.get("priority") || 100),
                 });
               }}
             >
@@ -361,6 +372,11 @@ function ZonesPage() {
               <div className="space-y-2">
                 <Label htmlFor="ez_desc">Descripción</Label>
                 <Input id="ez_desc" name="description" defaultValue={editZone.description || ""} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ez_priority">Prioridad de entrega</Label>
+                <Input id="ez_priority" name="priority" type="number" defaultValue={(editZone as any).priority ?? 100} required />
+                <p className="text-xs text-muted-foreground">Mayor número = mayor prioridad en la ruta.</p>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={updateZone.isPending} className="bg-gradient-primary">

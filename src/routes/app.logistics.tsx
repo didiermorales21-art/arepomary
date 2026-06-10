@@ -57,7 +57,14 @@ type OrderRow = {
   delivery_date: string | null;
   driver_id: string | null;
   customer_id: string;
-  customers: { name?: string | null; phone?: string | null; address?: string | null } | null;
+  customers:
+    | {
+        name?: string | null;
+        phone?: string | null;
+        address?: string | null;
+        neighborhoods?: { name?: string | null; zones?: { name?: string | null; priority?: number | null } | null } | null;
+      }
+    | null;
   drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
 };
 
@@ -76,7 +83,7 @@ function LogisticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address), drivers(name, license_plate, phone)")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone)")
         .not("status", "in", "(cancelled)")
         .order("delivery_date", { ascending: true })
         .order("order_number", { ascending: false })
@@ -155,6 +162,14 @@ function LogisticsPage() {
     orders: OrderRow[];
   };
 
+  const orderSortKey = (o: OrderRow) => {
+    const z = o.customers?.neighborhoods?.zones;
+    const p = typeof z?.priority === "number" ? z.priority : -1;
+    const zn = z?.name ?? "zzz";
+    const nb = o.customers?.neighborhoods?.name ?? "zzz";
+    return { p, zn, nb };
+  };
+
   const groups = useMemo<Group[]>(() => {
     const map = new Map<string, Group>();
     for (const o of filteredOrders) {
@@ -169,6 +184,16 @@ function LogisticsPage() {
         });
       }
       map.get(key)!.orders.push(o);
+    }
+    // sort orders inside each group: higher zone priority first, then zone name, then neighborhood
+    for (const g of map.values()) {
+      g.orders.sort((a, b) => {
+        const ka = orderSortKey(a);
+        const kb = orderSortKey(b);
+        if (kb.p !== ka.p) return kb.p - ka.p;
+        if (ka.zn !== kb.zn) return ka.zn.localeCompare(kb.zn);
+        return ka.nb.localeCompare(kb.nb);
+      });
     }
     return Array.from(map.values()).sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
@@ -399,6 +424,13 @@ function LogisticsPage() {
                                   Pedido #{o.order_number} · {o.customers?.name ?? "—"}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                  {o.customers?.neighborhoods?.zones?.name && (
+                                    <Badge variant="outline" className="font-normal">
+                                      {o.customers.neighborhoods.zones.name}
+                                      {typeof o.customers.neighborhoods.zones.priority === "number" && ` · P${o.customers.neighborhoods.zones.priority}`}
+                                      {o.customers.neighborhoods.name && ` · ${o.customers.neighborhoods.name}`}
+                                    </Badge>
+                                  )}
                                   {o.customers?.phone && <span>{o.customers.phone}</span>}
                                   {o.customers?.address && (
                                     <span className="inline-flex items-center gap-1">

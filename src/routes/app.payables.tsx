@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FileSpreadsheet, FileText, CreditCard } from "lucide-react";
-import { useState } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, FileSpreadsheet, FileText, CreditCard, Users, Truck } from "lucide-react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { exportToExcel, exportToPdf, fmtMoney } from "@/lib/export";
 
@@ -49,6 +50,7 @@ function PayablesPage() {
   const qc = useQueryClient();
   const [openCreate, setOpenCreate] = useState(false);
   const [payFor, setPayFor] = useState<BillRow | null>(null);
+  const [tab, setTab] = useState<"all" | "supplier" | "labor">("all");
 
   const { data: company } = useQuery({
     queryKey: ["company-settings"],
@@ -135,8 +137,12 @@ function PayablesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const cols = ["N°", "Proveedor", "Fecha", "Vence", "Total", "Pagado", "Saldo", "Estado"];
-  const rows = (bills ?? []).map((b) => [b.bill_number, b.supplier_name ?? "—", b.issued_at, b.due_date ?? "—", Number(b.total), Number(b.paid), Number(b.balance), b.status]);
+  const filtered = useMemo(() => {
+    return (bills ?? []).filter((b) => tab === "all" ? true : tab === "labor" ? !!b.collaborator_id : !!b.supplier_id);
+  }, [bills, tab]);
+
+  const cols = ["N°", "Tipo", "Beneficiario", "Fecha", "Vence", "Total", "Pagado", "Saldo", "Estado"];
+  const rows = filtered.map((b) => [b.bill_number, b.collaborator_id ? "Mano de obra" : "Proveedor", b.supplier_name ?? "—", b.issued_at, b.due_date ?? "—", Number(b.total), Number(b.paid), Number(b.balance), b.status]);
 
   return (
     <>
@@ -211,13 +217,21 @@ function PayablesPage() {
           </>
         }
       />
-      <div className="p-6">
+      <div className="p-6 space-y-3">
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+          <TabsList>
+            <TabsTrigger value="all">Todas ({(bills ?? []).length})</TabsTrigger>
+            <TabsTrigger value="supplier"><Truck className="mr-1 h-3.5 w-3.5" />Proveedores ({(bills ?? []).filter((b) => b.supplier_id).length})</TabsTrigger>
+            <TabsTrigger value="labor"><Users className="mr-1 h-3.5 w-3.5" />Mano de obra ({(bills ?? []).filter((b) => b.collaborator_id).length})</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div className="rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>N°</TableHead>
-                <TableHead>Proveedor</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Beneficiario</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Vence</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -228,13 +242,20 @@ function PayablesPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
-              ) : (bills ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Sin cuentas por pagar.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">Sin cuentas por pagar.</TableCell></TableRow>
               ) : (
-                (bills ?? []).map((b) => (
+                filtered.map((b) => (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono">#{b.bill_number}</TableCell>
+                    <TableCell>
+                      {b.collaborator_id ? (
+                        <Badge variant="outline" className="gap-1"><Users className="h-3 w-3" />Mano de obra</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="gap-1"><Truck className="h-3 w-3" />Proveedor</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{b.supplier_name ?? "—"}</TableCell>
                     <TableCell>{b.issued_at}</TableCell>
                     <TableCell>{b.due_date ?? "—"}</TableCell>
@@ -258,7 +279,7 @@ function PayablesPage() {
 
       <Dialog open={!!payFor} onOpenChange={(o) => !o && setPayFor(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="font-display">Registrar pago a proveedor</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display">Registrar pago {payFor?.collaborator_id ? "a colaborador" : "a proveedor"}</DialogTitle></DialogHeader>
           <form
             className="space-y-4"
             onSubmit={(e) => {

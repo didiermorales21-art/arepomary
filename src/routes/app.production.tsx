@@ -353,21 +353,29 @@ function ProductionPage() {
                           />
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {(collaborators ?? []).length === 0 ? (
-                            <span className="text-[11px] text-muted-foreground">No hay colaboradores. <Link to="/app/collaborators" className="underline">Crear</Link></span>
-                          ) : (collaborators ?? []).map((p: any) => (
-                            <button
-                              type="button"
-                              key={p.id}
-                              onClick={() => togglePerson(p.id)}
-                              className={`rounded-full border px-2 py-0.5 text-[11px] ${selected.includes(p.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
-                            >{p.full_name}</button>
-                          ))}
+                          {(() => {
+                            const eligibles = (collaborators ?? []).filter((p: any) => p.cost_item_id === c.id);
+                            if (eligibles.length === 0) {
+                              return (
+                                <span className="text-[11px] text-muted-foreground">
+                                  No hay colaboradores asignados a esta actividad. <Link to="/app/collaborators" className="underline">Crear/asignar</Link>
+                                </span>
+                              );
+                            }
+                            return eligibles.map((p: any) => (
+                              <button
+                                type="button"
+                                key={p.id}
+                                onClick={() => togglePerson(p.id)}
+                                className={`rounded-full border px-2 py-0.5 text-[11px] ${selected.includes(p.id) ? "bg-primary text-primary-foreground border-primary" : "bg-background"}`}
+                              >{p.full_name}</button>
+                            ));
+                          })()}
                         </div>
                       </div>
                     );
                   })}
-                  <p className="text-[11px] text-muted-foreground">La cantidad se divide entre las personas seleccionadas y se genera una cuenta por pagar para cada colaborador.</p>
+                  <p className="text-[11px] text-muted-foreground">Solo se muestran los colaboradores asignados a cada actividad. La cantidad se divide entre las personas seleccionadas y se genera una cuenta por pagar a cada uno.</p>
 
                 </div>
               )}
