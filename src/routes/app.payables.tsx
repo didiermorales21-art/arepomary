@@ -50,6 +50,7 @@ function PayablesPage() {
   const qc = useQueryClient();
   const [openCreate, setOpenCreate] = useState(false);
   const [payFor, setPayFor] = useState<BillRow | null>(null);
+  const [tab, setTab] = useState<"all" | "supplier" | "labor">("all");
 
   const { data: company } = useQuery({
     queryKey: ["company-settings"],
