@@ -259,7 +259,10 @@ function ZonesPage() {
                           <MapPin className="h-5 w-5" />
                         </div>
                         <div>
-                          <h3 className="font-display text-lg font-semibold">{z.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-display text-lg font-semibold">{z.name}</h3>
+                            <Badge variant="outline">Prioridad {(z as any).priority ?? 100}</Badge>
+                          </div>
                           {z.description && <p className="mt-1 text-sm text-muted-foreground">{z.description}</p>}
                         </div>
                       </div>
