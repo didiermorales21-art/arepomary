@@ -64,8 +64,8 @@ function ZonesPage() {
   });
 
   const updateZone = useMutation({
-    mutationFn: async (input: { id: string; name: string; description: string }) => {
-      const { error } = await supabase.from("zones").update({ name: input.name, description: input.description }).eq("id", input.id);
+    mutationFn: async (input: { id: string; name: string; description: string; priority: number }) => {
+      const { error } = await supabase.from("zones").update({ name: input.name, description: input.description, priority: input.priority } as any).eq("id", input.id);
       if (error) throw error;
     },
     onSuccess: () => {
