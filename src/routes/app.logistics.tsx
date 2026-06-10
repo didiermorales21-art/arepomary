@@ -424,6 +424,13 @@ function LogisticsPage() {
                                   Pedido #{o.order_number} · {o.customers?.name ?? "—"}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                  {o.customers?.neighborhoods?.zones?.name && (
+                                    <Badge variant="outline" className="font-normal">
+                                      {o.customers.neighborhoods.zones.name}
+                                      {typeof o.customers.neighborhoods.zones.priority === "number" && ` · P${o.customers.neighborhoods.zones.priority}`}
+                                      {o.customers.neighborhoods.name && ` · ${o.customers.neighborhoods.name}`}
+                                    </Badge>
+                                  )}
                                   {o.customers?.phone && <span>{o.customers.phone}</span>}
                                   {o.customers?.address && (
                                     <span className="inline-flex items-center gap-1">
