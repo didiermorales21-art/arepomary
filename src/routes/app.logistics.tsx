@@ -162,6 +162,14 @@ function LogisticsPage() {
     orders: OrderRow[];
   };
 
+  const orderSortKey = (o: OrderRow) => {
+    const z = o.customers?.neighborhoods?.zones;
+    const p = typeof z?.priority === "number" ? z.priority : -1;
+    const zn = z?.name ?? "zzz";
+    const nb = o.customers?.neighborhoods?.name ?? "zzz";
+    return { p, zn, nb };
+  };
+
   const groups = useMemo<Group[]>(() => {
     const map = new Map<string, Group>();
     for (const o of filteredOrders) {
@@ -176,6 +184,16 @@ function LogisticsPage() {
         });
       }
       map.get(key)!.orders.push(o);
+    }
+    // sort orders inside each group: higher zone priority first, then zone name, then neighborhood
+    for (const g of map.values()) {
+      g.orders.sort((a, b) => {
+        const ka = orderSortKey(a);
+        const kb = orderSortKey(b);
+        if (kb.p !== ka.p) return kb.p - ka.p;
+        if (ka.zn !== kb.zn) return ka.zn.localeCompare(kb.zn);
+        return ka.nb.localeCompare(kb.nb);
+      });
     }
     return Array.from(map.values()).sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
