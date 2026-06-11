@@ -1717,6 +1717,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
       list_public_sellers: {
         Args: never
         Returns: {
