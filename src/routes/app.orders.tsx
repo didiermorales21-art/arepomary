@@ -491,7 +491,7 @@ function OrdersPage() {
                           }));
                           const isOpen = !!expanded[o.id];
                           return (
-                            <>
+                            <Fragment key={o.id}>
                             <TableRow key={o.id}>
                               <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
                               <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
@@ -548,7 +548,7 @@ function OrdersPage() {
                                 </TableCell>
                               </TableRow>
                             )}
-                            </>
+                            </Fragment>
                           );
                         })
                       )}
