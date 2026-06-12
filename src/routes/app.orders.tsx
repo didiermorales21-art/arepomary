@@ -460,6 +460,7 @@ function OrdersPage() {
                       <TableRow>
                         <TableHead>#</TableHead>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>Productos</TableHead>
                         <TableHead>Entrega</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Estado</TableHead>
@@ -470,13 +471,13 @@ function OrdersPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                             Cargando…
                           </TableCell>
                         </TableRow>
                       ) : filtered.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                             Sin pedidos para los filtros seleccionados.
                           </TableCell>
                         </TableRow>
@@ -484,10 +485,19 @@ function OrdersPage() {
                         filtered.map((o: any) => {
                           const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
                           const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
+                          const items: ItemLite[] = (o.order_items ?? []).map((it: any) => ({
+                            name: it.products?.name ?? "—",
+                            quantity: Number(it.quantity ?? 0),
+                          }));
+                          const isOpen = !!expanded[o.id];
                           return (
+                            <>
                             <TableRow key={o.id}>
                               <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
                               <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
+                              <TableCell className="max-w-[260px]">
+                                <ItemsToggle items={items} open={isOpen} onToggle={() => setExpanded((p) => ({ ...p, [o.id]: !p[o.id] }))} />
+                              </TableCell>
                               <TableCell>
                                 {o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-CO") : "—"}
                               </TableCell>
@@ -531,6 +541,14 @@ function OrdersPage() {
                                 )}
                               </TableCell>
                             </TableRow>
+                            {isOpen && (
+                              <TableRow key={o.id + "-detail"} className="bg-muted/30">
+                                <TableCell colSpan={8} className="py-2">
+                                  <ItemsDetail items={items} />
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            </>
                           );
                         })
                       )}
