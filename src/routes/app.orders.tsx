@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { isSellerScoped } from "@/lib/rbac";
+import { ItemsToggle, ItemsDetail, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/orders")({
   component: OrdersPage,
@@ -70,7 +72,8 @@ interface LineDraft {
 
 function OrdersPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const sellerOnly = isSellerScoped(roles);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -78,14 +81,17 @@ function OrdersPage() {
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [statusTab, setStatusTab] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<string>("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", sellerOnly ? user?.id : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders" as any)
-        .select("id, order_number, total, status, delivery_date, created_at, customers(name), sales(id, sale_number)")
+        .select("id, order_number, total, status, delivery_date, created_at, customers!inner(name, seller_id), sales(id, sale_number), order_items(quantity, products(name))")
         .order("created_at", { ascending: false });
+      if (sellerOnly && user) q = q.eq("customers.seller_id", user.id);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any) ?? [];
     },
