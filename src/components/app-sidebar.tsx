@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { modulesForRoles, MODULES } from "@/lib/rbac";
 
 const navMain = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard },
