@@ -118,7 +118,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Operación</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {visibleMain.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                     <Link to={item.url}>
@@ -136,7 +136,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Cadena de suministro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navOps.map((item) => (
+              {visibleOps.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild={!item.soon}
@@ -166,7 +166,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Finanzas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navFinance.map((item) => (
+              {visibleFinance.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                     <Link to={item.url}>
@@ -184,7 +184,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Administración</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navAdmin.map((item) => (
+              {visibleAdmin.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild={!item.soon}
