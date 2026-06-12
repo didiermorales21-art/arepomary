@@ -84,6 +84,17 @@ export function AppSidebar() {
   const isActive = (p: string) => pathname === p || (p !== "/app" && pathname.startsWith(p));
   const { signOut, user, roles } = useAuth();
 
+  // Filtro de items por permisos del rol actual. Centralizado en src/lib/rbac.ts.
+  const allowed = modulesForRoles(roles);
+  const allowedPaths = new Set(Array.from(allowed).map((k) => MODULES[k]));
+  const visible = (items: typeof navMain) => items.filter((i) => allowedPaths.has(i.url));
+  const visibleMain = visible(navMain);
+  const visibleOps = visible(navOps);
+  const visibleFinance = visible(navFinance);
+  const visibleAdmin = visible(navAdmin);
+
+
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
