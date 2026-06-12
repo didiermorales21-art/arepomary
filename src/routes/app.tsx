@@ -3,7 +3,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Home, ShieldOff } from "lucide-react";
+import { canAccessPath } from "@/lib/rbac";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
