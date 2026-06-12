@@ -40,7 +40,6 @@ import { Route as AppCollaboratorsRouteImport } from './routes/app.collaborators
 import { Route as AppCashboxRouteImport } from './routes/app.cashbox'
 import { Route as AppAuditRouteImport } from './routes/app.audit'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
-import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -197,11 +196,6 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
-const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
-  id: '/api/public/bootstrap-admin',
-  path: '/api/public/bootstrap-admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -235,7 +229,6 @@ export interface FileRoutesByFullPath {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app/': typeof AppIndexRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -268,7 +261,6 @@ export interface FileRoutesByTo {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app': typeof AppIndexRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -303,7 +295,6 @@ export interface FileRoutesById {
   '/app/warehouses': typeof AppWarehousesRoute
   '/app/zones': typeof AppZonesRoute
   '/app/': typeof AppIndexRoute
-  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -339,7 +330,6 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app/'
-    | '/api/public/bootstrap-admin'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -372,7 +362,6 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app'
-    | '/api/public/bootstrap-admin'
   id:
     | '__root__'
     | '/'
@@ -406,7 +395,6 @@ export interface FileRouteTypes {
     | '/app/warehouses'
     | '/app/zones'
     | '/app/'
-    | '/api/public/bootstrap-admin'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -416,7 +404,6 @@ export interface RootRouteChildren {
   OrderRoute: typeof OrderRoute
   PortalRoute: typeof PortalRoute
   SignupRoute: typeof SignupRoute
-  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -638,13 +625,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/api/public/bootstrap-admin': {
-      id: '/api/public/bootstrap-admin'
-      path: '/api/public/bootstrap-admin'
-      fullPath: '/api/public/bootstrap-admin'
-      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -713,7 +693,6 @@ const rootRouteChildren: RootRouteChildren = {
   OrderRoute: OrderRoute,
   PortalRoute: PortalRoute,
   SignupRoute: SignupRoute,
-  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
