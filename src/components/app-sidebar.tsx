@@ -114,7 +114,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        {visibleMain.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Operación</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -130,9 +130,9 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleOps.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Cadena de suministro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -160,9 +160,9 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleFinance.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Finanzas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -178,9 +178,9 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleAdmin.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Administración</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -208,7 +208,7 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && user && (
