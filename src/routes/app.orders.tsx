@@ -28,9 +28,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Plus, Trash2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { isSellerScoped } from "@/lib/rbac";
+import { ItemsToggle, ItemsDetail, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/orders")({
   component: OrdersPage,
@@ -70,7 +72,8 @@ interface LineDraft {
 
 function OrdersPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const sellerOnly = isSellerScoped(roles);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -78,14 +81,17 @@ function OrdersPage() {
   const [lines, setLines] = useState<LineDraft[]>([]);
   const [statusTab, setStatusTab] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<string>("");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", sellerOnly ? user?.id : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("orders" as any)
-        .select("id, order_number, total, status, delivery_date, created_at, customers(name), sales(id, sale_number)")
+        .select("id, order_number, total, status, delivery_date, created_at, customers!inner(name, seller_id), sales(id, sale_number), order_items(quantity, products(name))")
         .order("created_at", { ascending: false });
+      if (sellerOnly && user) q = q.eq("customers.seller_id", user.id);
+      const { data, error } = await q;
       if (error) throw error;
       return (data as any) ?? [];
     },
@@ -454,6 +460,7 @@ function OrdersPage() {
                       <TableRow>
                         <TableHead>#</TableHead>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>Productos</TableHead>
                         <TableHead>Entrega</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead>Estado</TableHead>
@@ -464,13 +471,13 @@ function OrdersPage() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                             Cargando…
                           </TableCell>
                         </TableRow>
                       ) : filtered.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                          <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                             Sin pedidos para los filtros seleccionados.
                           </TableCell>
                         </TableRow>
@@ -478,10 +485,19 @@ function OrdersPage() {
                         filtered.map((o: any) => {
                           const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
                           const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
+                          const items: ItemLite[] = (o.order_items ?? []).map((it: any) => ({
+                            name: it.products?.name ?? "—",
+                            quantity: Number(it.quantity ?? 0),
+                          }));
+                          const isOpen = !!expanded[o.id];
                           return (
+                            <Fragment key={o.id}>
                             <TableRow key={o.id}>
                               <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
                               <TableCell className="font-medium">{o.customers?.name ?? "—"}</TableCell>
+                              <TableCell className="max-w-[260px]">
+                                <ItemsToggle items={items} open={isOpen} onToggle={() => setExpanded((p) => ({ ...p, [o.id]: !p[o.id] }))} />
+                              </TableCell>
                               <TableCell>
                                 {o.delivery_date ? new Date(o.delivery_date).toLocaleDateString("es-CO") : "—"}
                               </TableCell>
@@ -525,6 +541,14 @@ function OrdersPage() {
                                 )}
                               </TableCell>
                             </TableRow>
+                            {isOpen && (
+                              <TableRow key={o.id + "-detail"} className="bg-muted/30">
+                                <TableCell colSpan={8} className="py-2">
+                                  <ItemsDetail items={items} />
+                                </TableCell>
+                              </TableRow>
+                            )}
+                            </Fragment>
                           );
                         })
                       )}

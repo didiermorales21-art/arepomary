@@ -3,7 +3,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home } from "lucide-react";
+import { ArrowLeft, Home, ShieldOff } from "lucide-react";
+import { canAccessPath } from "@/lib/rbac";
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -38,8 +39,24 @@ function BackButton() {
   );
 }
 
+function NoAccess() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 p-10 text-center">
+      <ShieldOff className="h-10 w-10 text-muted-foreground" />
+      <h2 className="font-display text-xl font-semibold">Sin acceso a este módulo</h2>
+      <p className="max-w-md text-sm text-muted-foreground">
+        Tu perfil no tiene permisos para abrir esta sección. Si crees que es un error, contacta a un administrador.
+      </p>
+      <Button asChild variant="outline">
+        <Link to="/app"><Home className="mr-1 h-4 w-4" /> Volver al inicio</Link>
+      </Button>
+    </div>
+  );
+}
+
 function AppLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, roles } = useAuth();
+  const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   if (loading) {
     return (
@@ -49,6 +66,8 @@ function AppLayout() {
     );
   }
   if (!user) return <Navigate to="/login" />;
+
+  const allowed = canAccessPath(pathname, roles);
 
   return (
     <SidebarProvider>
@@ -61,11 +80,12 @@ function AppLayout() {
             <div className="ml-auto text-sm text-muted-foreground">Arepomary ERP</div>
           </header>
           <div className="flex-1">
-            <Outlet />
+            {allowed ? <Outlet /> : <NoAccess />}
           </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
   );
 }
+
 

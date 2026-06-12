@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { modulesForRoles, MODULES } from "@/lib/rbac";
 
 const navMain = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard },
@@ -84,6 +85,17 @@ export function AppSidebar() {
   const isActive = (p: string) => pathname === p || (p !== "/app" && pathname.startsWith(p));
   const { signOut, user, roles } = useAuth();
 
+  // Filtro de items por permisos del rol actual. Centralizado en src/lib/rbac.ts.
+  const allowed = modulesForRoles(roles);
+  const allowedPaths = new Set<string>(Array.from(allowed).map((k) => MODULES[k]));
+  const visible = <T extends { url: string }>(items: T[]) => items.filter((i) => allowedPaths.has(i.url));
+  const visibleMain = visible(navMain);
+  const visibleOps = visible(navOps);
+  const visibleFinance = visible(navFinance);
+  const visibleAdmin = visible(navAdmin);
+
+
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
@@ -102,11 +114,11 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
+        {visibleMain.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Operación</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navMain.map((item) => (
+              {visibleMain.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                     <Link to={item.url}>
@@ -118,13 +130,13 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleOps.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Cadena de suministro</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navOps.map((item) => (
+              {visibleOps.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild={!item.soon}
@@ -148,13 +160,13 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleFinance.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Finanzas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navFinance.map((item) => (
+              {visibleFinance.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                     <Link to={item.url}>
@@ -166,13 +178,13 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
 
-        <SidebarGroup>
+        {visibleAdmin.length > 0 && (<SidebarGroup>
           <SidebarGroupLabel>Administración</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navAdmin.map((item) => (
+              {visibleAdmin.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild={!item.soon}
@@ -196,7 +208,7 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>)}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && user && (
