@@ -88,7 +88,7 @@ export function AppSidebar() {
   // Filtro de items por permisos del rol actual. Centralizado en src/lib/rbac.ts.
   const allowed = modulesForRoles(roles);
   const allowedPaths = new Set<string>(Array.from(allowed).map((k) => MODULES[k]));
-  const visible = (items: typeof navMain) => items.filter((i) => allowedPaths.has(i.url));
+  const visible = <T extends { url: string }>(items: T[]) => items.filter((i) => allowedPaths.has(i.url));
   const visibleMain = visible(navMain);
   const visibleOps = visible(navOps);
   const visibleFinance = visible(navFinance);
