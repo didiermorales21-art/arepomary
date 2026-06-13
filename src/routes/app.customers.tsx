@@ -29,6 +29,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { isValidPhone, sanitizePhoneInput, PHONE_INPUT_PROPS } from "@/lib/phone";
+import { isSellerScoped } from "@/lib/rbac";
 
 export const Route = createFileRoute("/app/customers")({
   component: CustomersPage,
@@ -38,8 +39,9 @@ const COMPANY_ID = "00000000-0000-0000-0000-000000000001";
 
 function CustomersPage() {
   const qc = useQueryClient();
-  const { user, hasRole } = useAuth();
+  const { user, roles, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
+  const sellerOnly = isSellerScoped(roles);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
@@ -75,12 +77,14 @@ function CustomersPage() {
   });
 
   const { data: customers, isLoading } = useQuery({
-    queryKey: ["customers"],
+    queryKey: ["customers", sellerOnly ? user?.id : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("customers")
         .select("id, name, first_name, last_name, phone, email, address, status, document_id, neighborhood_id, seller_id, customer_type, gives_commission, commission_per_package, created_at, neighborhoods(name, zones(name))")
         .order("created_at", { ascending: false });
+      if (sellerOnly && user) query = query.eq("seller_id", user.id);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
