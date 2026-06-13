@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type ItemLite = { name: string; quantity: number };
 
@@ -20,13 +21,15 @@ export function ItemsToggle({
 }) {
   const list = items ?? [];
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="sm"
       onClick={(e) => {
         e.stopPropagation();
         onToggle();
       }}
-      className="flex w-full items-start gap-1 text-left text-xs hover:underline"
+      className="h-auto w-full justify-start gap-1 whitespace-normal p-0 text-left text-xs font-normal hover:bg-transparent hover:underline"
       title="Ver detalle de productos"
     >
       {open ? (
@@ -35,7 +38,7 @@ export function ItemsToggle({
         <ChevronRight className="mt-0.5 h-3 w-3 flex-shrink-0" />
       )}
       <span className="min-w-0">{summarizeItems(list)}</span>
-    </button>
+    </Button>
   );
 }
 

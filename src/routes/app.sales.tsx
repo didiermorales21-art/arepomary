@@ -23,9 +23,11 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { isSellerScoped } from "@/lib/rbac";
+import { ItemsDetail, ItemsToggle, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/sales")({
   component: SalesPage,
@@ -50,26 +52,34 @@ interface LineDraft {
 
 function SalesPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const sellerOnly = isSellerScoped(roles);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
   const [lines, setLines] = useState<LineDraft[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: sales, isLoading } = useQuery({
-    queryKey: ["sales"],
+    queryKey: ["sales", sellerOnly ? user?.id : "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("sales")
-        .select("id, sale_number, total, paid, balance, status, created_at, customers(name)")
+        .select("id, sale_number, total, paid, balance, status, created_at, seller_id, customers(name), sale_items(quantity, products(name))")
         .order("created_at", { ascending: false });
+      if (sellerOnly && user) query = query.eq("seller_id", user.id);
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
   });
 
   const { data: customers } = useQuery({
-    queryKey: ["customers-min"],
-    queryFn: async () => (await supabase.from("customers").select("id, name, customer_type").order("name")).data ?? [],
+    queryKey: ["customers-min", sellerOnly ? user?.id : "all"],
+    queryFn: async () => {
+      let query = supabase.from("customers").select("id, name, customer_type, seller_id").order("name");
+      if (sellerOnly && user) query = query.eq("seller_id", user.id);
+      return (await query).data ?? [];
+    },
   });
   const { data: products } = useQuery({
     queryKey: ["products-min"],
@@ -260,6 +270,7 @@ function SalesPage() {
                 <TableHead>#</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Fecha</TableHead>
+                <TableHead className="min-w-56">Productos</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Pagado</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
@@ -269,22 +280,30 @@ function SalesPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     Cargando…
                   </TableCell>
                 </TableRow>
               ) : (sales ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                     Aún no hay ventas registradas.
                   </TableCell>
                 </TableRow>
               ) : (
-                (sales ?? []).map((s: any) => (
-                  <TableRow key={s.id}>
+                (sales ?? []).map((s: any) => {
+                  const items: ItemLite[] = (s.sale_items ?? []).map((item: any) => ({
+                    name: item.products?.name ?? "Producto",
+                    quantity: Number(item.quantity ?? 0),
+                  }));
+                  return <Fragment key={s.id}>
+                  <TableRow>
                     <TableCell className="font-mono text-xs">#{s.sale_number}</TableCell>
                     <TableCell className="font-medium">{s.customers?.name ?? "—"}</TableCell>
                     <TableCell>{new Date(s.created_at).toLocaleDateString("es-CO")}</TableCell>
+                    <TableCell>
+                      <ItemsToggle items={items} open={Boolean(expanded[s.id])} onToggle={() => setExpanded((prev) => ({ ...prev, [s.id]: !prev[s.id] }))} />
+                    </TableCell>
                     <TableCell className="text-right">{fmt(Number(s.total))}</TableCell>
                     <TableCell className="text-right">{fmt(Number(s.paid))}</TableCell>
                     <TableCell className="text-right font-medium text-foreground">{fmt(Number(s.balance))}</TableCell>
@@ -292,7 +311,13 @@ function SalesPage() {
                       <Badge variant={statusVariant[s.status] ?? "outline"}>{s.status}</Badge>
                     </TableCell>
                   </TableRow>
-                ))
+                  {expanded[s.id] && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="bg-muted/30 pl-12"><ItemsDetail items={items} /></TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>;
+                })
               )}
             </TableBody>
           </Table>
