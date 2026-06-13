@@ -93,7 +93,9 @@ function ReportsPage() {
       desc: "Cantidad de ventas, total facturado y saldo pendiente por vendedor.",
       icon: UserSquare2,
       load: async () => {
-        const { data: sales } = await supabase.from("sales").select("seller_id, total, paid, balance");
+        let query = supabase.from("sales").select("seller_id, total, paid, balance");
+        if (sellerOnly && user) query = query.eq("seller_id", user.id);
+        const { data: sales } = await query;
         const sellerIds = Array.from(new Set((sales ?? []).map((s) => s.seller_id)));
         const { data: profiles } = sellerIds.length
           ? await supabase.from("profiles").select("id, full_name").in("id", sellerIds)

@@ -123,7 +123,7 @@ function AnalyticsPage() {
   const produced = (production ?? []).reduce((a, p) => a + Number(p.produced_quantity ?? 0), 0);
   const efficiency = planned > 0 ? (produced / planned) * 100 : 0;
   const profitData = !sellerOnly ? allocateProductionProfits(
-    production ?? [], saleItems as any[] ?? [],
+    production ?? [], (saleItems ?? []) as any[],
     Number(commissionSettings?.commission_standard_per_package ?? 0),
     Number(commissionSettings?.commission_wholesale_per_package ?? 0),
   ).map((profit, index) => ({
