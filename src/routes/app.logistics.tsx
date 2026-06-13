@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 import { exportToPdf, exportToExcel } from "@/lib/export";
+import { ItemsDetail, ItemsToggle, summarizeItems, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
@@ -66,6 +67,7 @@ type OrderRow = {
       }
     | null;
   drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
+  order_items?: Array<{ quantity?: number | null; products?: { name?: string | null } | null }> | null;
 };
 
 type DriverRow = { id: string; name: string; phone: string | null; license_plate: string | null; vehicle: string | null };
@@ -77,13 +79,14 @@ function LogisticsPage() {
   const [openDriver, setOpenDriver] = useState(false);
   const [filterDate, setFilterDate] = useState<string>(todayISO());
   const [filterDriver, setFilterDriver] = useState<string>("all");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const { data: orders } = useQuery({
     queryKey: ["logistics-orders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone)")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone), order_items(quantity, products(name))")
         .not("status", "in", "(cancelled)")
         .order("delivery_date", { ascending: true })
         .order("order_number", { ascending: false })
@@ -213,8 +216,15 @@ function LogisticsPage() {
       o.customers?.name ?? "—",
       o.customers?.phone ?? "—",
       o.customers?.address ?? "—",
+      summarizeItems(toItems(o), 99),
       ORDER_STATUS_LABEL[o.status] ?? o.status,
     ]);
+
+  const toItems = (order: OrderRow): ItemLite[] =>
+    (order.order_items ?? []).map((item) => ({
+      name: item.products?.name ?? "Producto",
+      quantity: Number(item.quantity ?? 0),
+    }));
 
   const handleDownloadPdf = () => {
     if (filteredOrders.length === 0) {
@@ -223,7 +233,7 @@ function LogisticsPage() {
     }
     exportToPdf({
       title: "Pedidos por entregar",
-      columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Estado"],
+      columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Productos", "Estado"],
       rows: buildExportRows(filteredOrders),
       meta: {
         Fecha: filterDate || "Todas",
@@ -248,7 +258,7 @@ function LogisticsPage() {
       filename: `entregas_${filterDate || "todas"}`,
       sheets: [{
         name: "Entregas",
-        columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Estado"],
+        columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Productos", "Estado"],
         rows: buildExportRows(filteredOrders),
       }],
     });
@@ -257,12 +267,13 @@ function LogisticsPage() {
   const downloadGroupPdf = (g: Group) => {
     exportToPdf({
       title: `Ruta ${g.driverName}`,
-      columns: ["Pedido", "Cliente", "Teléfono", "Dirección", "Total", "Estado"],
+      columns: ["Pedido", "Cliente", "Teléfono", "Dirección", "Productos", "Total", "Estado"],
       rows: g.orders.map((o) => [
         `#${o.order_number}`,
         o.customers?.name ?? "—",
         o.customers?.phone ?? "—",
         o.customers?.address ?? "—",
+        summarizeItems(toItems(o), 99),
         String(o.total ?? 0),
         ORDER_STATUS_LABEL[o.status] ?? o.status,
       ]),
@@ -417,8 +428,9 @@ function LogisticsPage() {
                         </div>
 
                         <div className="divide-y rounded-lg border">
-                          {g.orders.map((o) => (
-                            <div key={o.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
+                          {g.orders.map((o) => {
+                            const items = toItems(o);
+                            return <div key={o.id} className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between">
                               <div className="min-w-0">
                                 <div className="text-sm font-medium">
                                   Pedido #{o.order_number} · {o.customers?.name ?? "—"}
@@ -437,6 +449,10 @@ function LogisticsPage() {
                                       <MapPin className="h-3 w-3" /> {o.customers.address}
                                     </span>
                                   )}
+                                </div>
+                                <div className="mt-1 max-w-xl">
+                                  <ItemsToggle items={items} open={Boolean(expanded[o.id])} onToggle={() => setExpanded((prev) => ({ ...prev, [o.id]: !prev[o.id] }))} />
+                                  {expanded[o.id] && <div className="mt-1 pl-4"><ItemsDetail items={items} /></div>}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -457,8 +473,8 @@ function LogisticsPage() {
                                   </Select>
                                 )}
                               </div>
-                            </div>
-                          ))}
+                            </div>;
+                          })}
                         </div>
                       </CardContent>
                     </Card>
