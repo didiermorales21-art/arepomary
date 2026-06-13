@@ -114,9 +114,12 @@ function OrdersPage() {
   });
 
   const { data: customers } = useQuery({
-    queryKey: ["customers-min"],
-    queryFn: async () =>
-      (await supabase.from("customers").select("id, name, document_id, phone, customer_type").order("name")).data ?? [],
+    queryKey: ["customers-min", sellerOnly ? user?.id : "all"],
+    queryFn: async () => {
+      let query = supabase.from("customers").select("id, name, document_id, phone, customer_type, seller_id").order("name");
+      if (sellerOnly && user) query = query.eq("seller_id", user.id);
+      return (await query).data ?? [];
+    },
   });
   const { data: deliveryDays } = useQuery({
     queryKey: ["delivery-days"],
