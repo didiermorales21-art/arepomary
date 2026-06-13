@@ -18,6 +18,7 @@ import { Plus, Wheat } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { allocateProductionProfits } from "@/lib/production-profit";
 
 export const Route = createFileRoute("/app/production")({
   component: ProductionPage,
@@ -50,7 +51,7 @@ function ProductionPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("production_batches" as any)
-        .select("id, batch_number, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, variable_input_cost, variable_labor_cost, fixed_cost_allocated, total_cost, created_at, products(id, name, sku, image_url)")
+        .select("id, batch_number, product_id, planned_quantity, produced_quantity, status, scheduled_for, unit_cost, variable_input_cost, variable_labor_cost, fixed_cost_allocated, total_cost, created_at, products(id, name, sku, image_url)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data as any) ?? [];
@@ -82,12 +83,29 @@ function ProductionPage() {
       return (data as any[]) ?? [];
     },
   });
+  const { data: profitInputs } = useQuery({
+    queryKey: ["production-profit-inputs"],
+    queryFn: async () => {
+      const [itemsResult, settingsResult] = await Promise.all([
+        supabase.from("sale_items").select("product_id, quantity, line_total, sales!inner(status, customers(customer_type, gives_commission, commission_per_package))"),
+        supabase.from("company_settings").select("commission_standard_per_package, commission_wholesale_per_package").limit(1).maybeSingle(),
+      ]);
+      if (itemsResult.error) throw itemsResult.error;
+      return { items: itemsResult.data ?? [], settings: settingsResult.data };
+    },
+  });
 
 
 
   const inputs = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_input"), [costItems]);
   const labor  = useMemo(() => (costItems ?? []).filter((c) => c.category === "variable_labor"), [costItems]);
   const fixed  = useMemo(() => (costItems ?? []).filter((c) => c.category === "fixed"), [costItems]);
+  const profits = useMemo(() => allocateProductionProfits(
+    batches ?? [],
+    (profitInputs?.items ?? []) as any[],
+    Number(profitInputs?.settings?.commission_standard_per_package ?? 0),
+    Number(profitInputs?.settings?.commission_wholesale_per_package ?? 0),
+  ), [batches, profitInputs]);
 
   async function computeFixedAllocation(producedQty: number, monthStart: Date) {
     if (!producedQty || producedQty <= 0) return { perUnit: 0, monthlyFixed: 0, monthlyUnits: 0 };
@@ -445,20 +463,24 @@ function ProductionPage() {
                 <TableHead className="text-right">Plan / Prod.</TableHead>
                 <TableHead className="text-right">Costo unitario</TableHead>
                 <TableHead className="text-right">Costo total</TableHead>
+                <TableHead className="text-right">Utilidad bruta</TableHead>
+                <TableHead className="text-right">Utilidad neta</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead className="w-[140px]">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">Cargando…</TableCell></TableRow>
               ) : (batches ?? []).length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableRow><TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
                   <Wheat className="mx-auto mb-2 h-6 w-6 opacity-50" />
                   Aún no hay lotes.
                 </TableCell></TableRow>
               ) : (
-                (batches ?? []).map((b: any) => (
+                (batches ?? []).map((b: any, index: number) => {
+                  const profit = profits[index];
+                  return (
                   <TableRow key={b.id}>
                     <TableCell className="font-mono text-xs">#{b.batch_number}</TableCell>
                     <TableCell className="font-medium">
@@ -475,6 +497,12 @@ function ProductionPage() {
                     <TableCell className="text-right tabular-nums">{b.planned_quantity} / {b.produced_quantity}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.status === "completed" ? fmt(Number(b.unit_cost)) : "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.status === "completed" ? fmt(Number(b.total_cost)) : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {b.status === "completed" && profit ? <><div>{fmt(profit.grossProfit)}</div><div className="text-xs text-muted-foreground">{profit.grossMargin.toFixed(1)}%</div></> : "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {b.status === "completed" && profit ? <><div>{fmt(profit.netProfit)}</div><div className="text-xs text-muted-foreground">{profit.netMargin.toFixed(1)}%</div></> : "—"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[b.status] ?? "outline"}>{statusLabel[b.status] ?? b.status}</Badge>
                     </TableCell>
@@ -484,7 +512,8 @@ function ProductionPage() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>

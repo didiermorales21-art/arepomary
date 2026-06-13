@@ -17,6 +17,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+import { useAuth } from "@/hooks/use-auth";
+import { isSellerScoped } from "@/lib/rbac";
 
 export const Route = createFileRoute("/app/")({
   component: Dashboard,
@@ -35,26 +37,34 @@ function defaultRange() {
 }
 
 function Dashboard() {
+  const { user, roles } = useAuth();
+  const sellerOnly = isSellerScoped(roles);
   const initial = useMemo(defaultRange, []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
 
   const { data: kpis } = useQuery({
-    queryKey: ["kpis", from, to],
+    queryKey: ["kpis", from, to, sellerOnly ? user?.id : "all"],
     queryFn: async () => {
       const fromIso = new Date(from + "T00:00:00").toISOString();
       const toIso = new Date(to + "T23:59:59").toISOString();
-      const [{ count: customers }, salesRes, invoicesRes] = await Promise.all([
-        supabase.from("customers").select("*", { head: true, count: "exact" }),
-        supabase
+      let customersQuery = supabase.from("customers").select("*", { head: true, count: "exact" });
+      let salesQuery = supabase
           .from("sales")
-          .select("total, created_at")
+          .select("total, created_at, seller_id")
           .gte("created_at", fromIso)
-          .lte("created_at", toIso),
-        supabase
+          .lte("created_at", toIso);
+      let invoicesQuery = supabase
           .from("invoices")
-          .select("balance, status")
-          .not("status", "in", "(paid,cancelled)"),
+          .select("balance, status, customers!inner(seller_id)")
+          .not("status", "in", "(paid,cancelled)");
+      if (sellerOnly && user) {
+        customersQuery = customersQuery.eq("seller_id", user.id);
+        salesQuery = salesQuery.eq("seller_id", user.id);
+        invoicesQuery = invoicesQuery.eq("customers.seller_id", user.id);
+      }
+      const [{ count: customers }, salesRes, invoicesRes] = await Promise.all([
+        customersQuery, salesQuery, invoicesQuery,
       ]);
       const sales = salesRes.data ?? [];
       const totalSales = sales.reduce((s, r) => s + Number(r.total || 0), 0);

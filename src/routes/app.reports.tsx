@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileSpreadsheet, FileText, BarChart3, Package, Wheat, Wallet, Receipt, UserSquare2 } from "lucide-react";
 import { exportToExcel, exportToPdf, fmtMoney } from "@/lib/export";
+import { useAuth } from "@/hooks/use-auth";
+import { isSellerScoped } from "@/lib/rbac";
 
 export const Route = createFileRoute("/app/reports")({
   component: ReportsPage,
 });
 
 function ReportsPage() {
+  const { user, roles } = useAuth();
+  const sellerOnly = isSellerScoped(roles);
   const { data: company } = useQuery({
     queryKey: ["company-settings"],
     queryFn: async () => (await supabase.from("company_settings").select("*").limit(1).maybeSingle()).data,
@@ -24,7 +28,9 @@ function ReportsPage() {
       desc: "Listado completo de ventas registradas.",
       icon: BarChart3,
       load: async () => {
-        const { data } = await supabase.from("sales").select("sale_number, created_at, total, paid, balance, status").order("created_at", { ascending: false });
+        let query = supabase.from("sales").select("sale_number, created_at, total, paid, balance, status, seller_id").order("created_at", { ascending: false });
+        if (sellerOnly && user) query = query.eq("seller_id", user.id);
+        const { data } = await query;
         return {
           cols: ["N°", "Fecha", "Total", "Pagado", "Saldo", "Estado"],
           rows: (data ?? []).map((s) => [s.sale_number, new Date(s.created_at).toLocaleDateString("es-CO"), Number(s.total), Number(s.paid), Number(s.balance ?? 0), s.status]),
@@ -72,7 +78,9 @@ function ReportsPage() {
       desc: "Facturas pendientes de cobro.",
       icon: Wallet,
       load: async () => {
-        const { data } = await supabase.from("invoices").select("invoice_number, issued_at, due_date, total, paid, balance, status").gt("balance", 0).neq("status", "cancelled");
+        let query = supabase.from("invoices").select("invoice_number, issued_at, due_date, total, paid, balance, status, customers!inner(seller_id)").gt("balance", 0).neq("status", "cancelled");
+        if (sellerOnly && user) query = query.eq("customers.seller_id", user.id);
+        const { data } = await query;
         return {
           cols: ["N°", "Emitida", "Vence", "Total", "Pagado", "Saldo", "Estado"],
           rows: (data ?? []).map((i) => [i.invoice_number, i.issued_at, i.due_date ?? "—", Number(i.total), Number(i.paid), Number(i.balance), i.status]),
@@ -125,7 +133,7 @@ function ReportsPage() {
     <>
       <PageHeader title="Centro de reportes" description="Exporta cualquier reporte a PDF o Excel." />
       <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
-        {reports.map((r) => (
+        {reports.filter((r) => !sellerOnly || ["sales", "receivables", "sales-by-seller"].includes(r.key)).map((r) => (
           <Card key={r.key} className="shadow-card">
             <CardHeader>
               <div className="flex items-start justify-between">
