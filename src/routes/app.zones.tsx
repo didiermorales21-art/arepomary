@@ -269,21 +269,23 @@ function ZonesPage() {
                           {z.description && <p className="mt-1 text-sm text-muted-foreground">{z.description}</p>}
                         </div>
                       </div>
-                      {isAdmin && (
+                      {canEdit && (
                         <div className="flex flex-col gap-1">
                           <Button size="icon" variant="ghost" onClick={() => setEditZone(z)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              if (confirm(`¿Eliminar la zona ${z.name}? Esta acción no se puede deshacer.`))
-                                deleteZone.mutate(z.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm(`¿Eliminar la zona ${z.name}? Esta acción no se puede deshacer.`))
+                                  deleteZone.mutate(z.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
