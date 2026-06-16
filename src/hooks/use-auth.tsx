@@ -2,7 +2,7 @@ import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "seller" | "production_operator" | "logistics_operator" | "customer" | "operations";
+export type AppRole = "admin" | "seller" | "logistics_operator" | "customer" | "operations";
 
 interface AuthCtx {
   user: User | null;
