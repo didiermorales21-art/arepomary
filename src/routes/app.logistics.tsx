@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 import { exportToPdf, exportToExcel } from "@/lib/export";
-import { ItemsDetail, ItemsToggle, summarizeItems, type ItemLite } from "@/components/items-cell";
+import { ItemsDetail, ItemsToggle, summarizeItems, aggregateItems, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
