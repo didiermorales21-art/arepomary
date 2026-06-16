@@ -522,7 +522,11 @@ function OrdersPage() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {Object.entries(statusLabel).map(([k, v]) => (
-                                      <SelectItem key={k} value={k}>
+                                      <SelectItem
+                                        key={k}
+                                        value={k}
+                                        disabled={k === "delivered" && !canDeliver}
+                                      >
                                         {v}
                                       </SelectItem>
                                     ))}
@@ -538,7 +542,8 @@ function OrdersPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    disabled={!canConvert || convertMutation.isPending}
+                                    disabled={!canConvert || !canDeliver || convertMutation.isPending}
+                                    title={!canDeliver ? "Solo logística o administrador puede convertir en venta" : undefined}
                                     onClick={() => convertMutation.mutate(o.id)}
                                   >
                                     Convertir en venta
