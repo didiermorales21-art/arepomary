@@ -75,7 +75,7 @@ type DriverRow = { id: string; name: string; phone: string | null; license_plate
 function LogisticsPage() {
   const qc = useQueryClient();
   const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["admin", "operations"]);
+  const canManage = hasAnyRole(["admin", "logistics_operator"]);
   const [openDriver, setOpenDriver] = useState(false);
   const [filterDate, setFilterDate] = useState<string>(todayISO());
   const [filterDriver, setFilterDriver] = useState<string>("all");
