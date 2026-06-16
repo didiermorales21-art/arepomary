@@ -305,13 +305,13 @@ function ZonesPage() {
                   <TableHead>Barrio</TableHead>
                   <TableHead>Zona</TableHead>
                   <TableHead>Estado</TableHead>
-                  {isAdmin && <TableHead className="w-[100px]" />}
+                  {canEdit && <TableHead className="w-[100px]" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(neighborhoods ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 4 : 3} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={canEdit ? 4 : 3} className="py-10 text-center text-sm text-muted-foreground">
                       Aún no hay barrios.
                     </TableCell>
                   </TableRow>
@@ -323,21 +323,23 @@ function ZonesPage() {
                       <TableCell>
                         <Badge variant={n.active ? "default" : "secondary"}>{n.active ? "activo" : "inactivo"}</Badge>
                       </TableCell>
-                      {isAdmin && (
+                      {canEdit && (
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="icon" variant="ghost" onClick={() => openEditHood(n)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                if (confirm(`¿Eliminar el barrio ${n.name}?`)) deleteHood.mutate(n.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {canDelete && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm(`¿Eliminar el barrio ${n.name}?`)) deleteHood.mutate(n.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       )}
