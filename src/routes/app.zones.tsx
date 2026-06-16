@@ -28,8 +28,11 @@ export const Route = createFileRoute("/app/zones")({
 
 function ZonesPage() {
   const qc = useQueryClient();
-  const { hasRole } = useAuth();
+  const { hasRole, hasAnyRole } = useAuth();
   const isAdmin = hasRole("admin");
+  // Logística puede crear y modificar zonas/barrios pero NO eliminar.
+  const canEdit = hasAnyRole(["admin", "logistics_operator"]);
+  const canDelete = isAdmin;
   const [zoneOpen, setZoneOpen] = useState(false);
   const [hoodOpen, setHoodOpen] = useState(false);
   const [editZone, setEditZone] = useState<any | null>(null);
