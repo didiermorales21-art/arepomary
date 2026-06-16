@@ -149,7 +149,7 @@ function ZonesPage() {
         title="Zonas y barrios"
         description="Define zonas geográficas y asigna los barrios a cada una."
         actions={
-          isAdmin && (
+          canEdit && (
             <div className="flex gap-2">
               <Dialog open={hoodOpen} onOpenChange={setHoodOpen}>
                 <DialogTrigger asChild>
