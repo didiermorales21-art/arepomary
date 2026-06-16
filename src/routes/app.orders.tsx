@@ -72,8 +72,10 @@ interface LineDraft {
 
 function OrdersPage() {
   const qc = useQueryClient();
-  const { user, roles } = useAuth();
+  const { user, roles, hasAnyRole } = useAuth();
   const sellerOnly = isSellerScoped(roles);
+  // Solo administrador y logística pueden marcar entregado / convertir en venta.
+  const canDeliver = hasAnyRole(["admin", "logistics_operator"]);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
