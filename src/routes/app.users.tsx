@@ -28,7 +28,6 @@ const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administradores",
   seller: "Vendedores",
   operations: "Operaciones",
-  production_operator: "Producción",
   logistics_operator: "Logística",
   customer: "Clientes",
 };
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/app/users")({
   component: UsersPage,
 });
 
-const ALL_ROLES: AppRole[] = ["admin", "seller", "operations", "production_operator", "logistics_operator", "customer"];
+const ALL_ROLES: AppRole[] = ["admin", "seller", "operations", "logistics_operator", "customer"];
 
 function UsersPage() {
   const qc = useQueryClient();
