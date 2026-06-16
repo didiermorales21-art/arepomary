@@ -10,6 +10,20 @@ export function summarizeItems(items: ItemLite[] | null | undefined, max = 3): s
   return more > 0 ? `${head} (+${more} más)` : head;
 }
 
+// Suma cantidades por nombre de producto (case-insensitive) y devuelve la lista
+// ordenada de mayor a menor. Útil para totales de alistamiento en envíos.
+export function aggregateItems(items: ItemLite[] | null | undefined): ItemLite[] {
+  const map = new Map<string, { name: string; quantity: number }>();
+  for (const it of items ?? []) {
+    const key = (it.name ?? "").trim().toLowerCase() || "—";
+    const prev = map.get(key);
+    const qty = Number(it.quantity ?? 0);
+    if (prev) prev.quantity += qty;
+    else map.set(key, { name: it.name ?? "—", quantity: qty });
+  }
+  return Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);
+}
+
 export function ItemsToggle({
   items,
   open,

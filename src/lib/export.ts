@@ -23,8 +23,9 @@ export function exportToPdf(opts: {
   company?: CompanyInfo | null;
   filename?: string;
   meta?: Record<string, string>;
+  extraTable?: { title?: string; columns: string[]; rows: (string | number)[][] };
 }) {
-  const { title, columns, rows, company, meta } = opts;
+  const { title, columns, rows, company, meta, extraTable } = opts;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -67,6 +68,23 @@ export function exportToPdf(opts: {
     headStyles: { fillColor: [40, 40, 40] },
     margin: { left: 14, right: 14 },
   });
+
+  if (extraTable && extraTable.rows.length > 0) {
+    const afterY = (doc as any).lastAutoTable?.finalY ?? y + 4;
+    if (extraTable.title) {
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(extraTable.title, 14, afterY + 8);
+    }
+    autoTable(doc, {
+      startY: afterY + (extraTable.title ? 10 : 6),
+      head: [extraTable.columns],
+      body: extraTable.rows.map((r) => r.map((c) => (typeof c === "number" ? String(c) : c ?? ""))),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [80, 80, 80] },
+      margin: { left: 14, right: 14 },
+    });
+  }
 
   doc.save(opts.filename || `${title.toLowerCase().replace(/\s+/g, "_")}.pdf`);
 }

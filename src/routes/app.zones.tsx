@@ -28,8 +28,11 @@ export const Route = createFileRoute("/app/zones")({
 
 function ZonesPage() {
   const qc = useQueryClient();
-  const { hasRole } = useAuth();
+  const { hasRole, hasAnyRole } = useAuth();
   const isAdmin = hasRole("admin");
+  // Logística puede crear y modificar zonas/barrios pero NO eliminar.
+  const canEdit = hasAnyRole(["admin", "logistics_operator"]);
+  const canDelete = isAdmin;
   const [zoneOpen, setZoneOpen] = useState(false);
   const [hoodOpen, setHoodOpen] = useState(false);
   const [editZone, setEditZone] = useState<any | null>(null);
@@ -146,7 +149,7 @@ function ZonesPage() {
         title="Zonas y barrios"
         description="Define zonas geográficas y asigna los barrios a cada una."
         actions={
-          isAdmin && (
+          canEdit && (
             <div className="flex gap-2">
               <Dialog open={hoodOpen} onOpenChange={setHoodOpen}>
                 <DialogTrigger asChild>
@@ -266,21 +269,23 @@ function ZonesPage() {
                           {z.description && <p className="mt-1 text-sm text-muted-foreground">{z.description}</p>}
                         </div>
                       </div>
-                      {isAdmin && (
+                      {canEdit && (
                         <div className="flex flex-col gap-1">
                           <Button size="icon" variant="ghost" onClick={() => setEditZone(z)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              if (confirm(`¿Eliminar la zona ${z.name}? Esta acción no se puede deshacer.`))
-                                deleteZone.mutate(z.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                if (confirm(`¿Eliminar la zona ${z.name}? Esta acción no se puede deshacer.`))
+                                  deleteZone.mutate(z.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -300,13 +305,13 @@ function ZonesPage() {
                   <TableHead>Barrio</TableHead>
                   <TableHead>Zona</TableHead>
                   <TableHead>Estado</TableHead>
-                  {isAdmin && <TableHead className="w-[100px]" />}
+                  {canEdit && <TableHead className="w-[100px]" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(neighborhoods ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={isAdmin ? 4 : 3} className="py-10 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={canEdit ? 4 : 3} className="py-10 text-center text-sm text-muted-foreground">
                       Aún no hay barrios.
                     </TableCell>
                   </TableRow>
@@ -318,21 +323,23 @@ function ZonesPage() {
                       <TableCell>
                         <Badge variant={n.active ? "default" : "secondary"}>{n.active ? "activo" : "inactivo"}</Badge>
                       </TableCell>
-                      {isAdmin && (
+                      {canEdit && (
                         <TableCell>
                           <div className="flex gap-1">
                             <Button size="icon" variant="ghost" onClick={() => openEditHood(n)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                if (confirm(`¿Eliminar el barrio ${n.name}?`)) deleteHood.mutate(n.id);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {canDelete && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm(`¿Eliminar el barrio ${n.name}?`)) deleteHood.mutate(n.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       )}

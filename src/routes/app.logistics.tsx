@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { PHONE_INPUT_PROPS, isValidPhone, sanitizePhoneInput } from "@/lib/phone";
 import { exportToPdf, exportToExcel } from "@/lib/export";
-import { ItemsDetail, ItemsToggle, summarizeItems, type ItemLite } from "@/components/items-cell";
+import { ItemsDetail, ItemsToggle, summarizeItems, aggregateItems, type ItemLite } from "@/components/items-cell";
 
 export const Route = createFileRoute("/app/logistics")({
   component: LogisticsPage,
@@ -75,7 +75,7 @@ type DriverRow = { id: string; name: string; phone: string | null; license_plate
 function LogisticsPage() {
   const qc = useQueryClient();
   const { hasAnyRole } = useAuth();
-  const canManage = hasAnyRole(["admin", "operations"]);
+  const canManage = hasAnyRole(["admin", "logistics_operator"]);
   const [openDriver, setOpenDriver] = useState(false);
   const [filterDate, setFilterDate] = useState<string>(todayISO());
   const [filterDriver, setFilterDriver] = useState<string>("all");
@@ -226,11 +226,18 @@ function LogisticsPage() {
       quantity: Number(item.quantity ?? 0),
     }));
 
+  const productTotals = (list: OrderRow[]): ItemLite[] => {
+    const all: ItemLite[] = [];
+    list.forEach((o) => all.push(...toItems(o)));
+    return aggregateItems(all);
+  };
+
   const handleDownloadPdf = () => {
     if (filteredOrders.length === 0) {
       toast.error("No hay pedidos para descargar");
       return;
     }
+    const totals = productTotals(filteredOrders);
     exportToPdf({
       title: "Pedidos por entregar",
       columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Productos", "Estado"],
@@ -245,6 +252,11 @@ function LogisticsPage() {
               : (drivers ?? []).find((d) => d.id === filterDriver)?.name ?? "—",
         Pedidos: String(filteredOrders.length),
       },
+      extraTable: {
+        title: "Total por tipo de producto (alistamiento)",
+        columns: ["Producto", "Cantidad total"],
+        rows: totals.map((t) => [t.name, t.quantity]),
+      },
       filename: `entregas_${filterDate || "todas"}.pdf`,
     });
   };
@@ -254,17 +266,26 @@ function LogisticsPage() {
       toast.error("No hay pedidos para descargar");
       return;
     }
+    const totals = productTotals(filteredOrders);
     exportToExcel({
       filename: `entregas_${filterDate || "todas"}`,
-      sheets: [{
-        name: "Entregas",
-        columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Productos", "Estado"],
-        rows: buildExportRows(filteredOrders),
-      }],
+      sheets: [
+        {
+          name: "Entregas",
+          columns: ["Pedido", "Fecha", "Conductor", "Cliente", "Teléfono", "Dirección", "Productos", "Estado"],
+          rows: buildExportRows(filteredOrders),
+        },
+        {
+          name: "Totales producto",
+          columns: ["Producto", "Cantidad total"],
+          rows: totals.map((t) => [t.name, t.quantity]),
+        },
+      ],
     });
   };
 
   const downloadGroupPdf = (g: Group) => {
+    const totals = productTotals(g.orders);
     exportToPdf({
       title: `Ruta ${g.driverName}`,
       columns: ["Pedido", "Cliente", "Teléfono", "Dirección", "Productos", "Total", "Estado"],
@@ -281,6 +302,11 @@ function LogisticsPage() {
         Conductor: g.driverName,
         Fecha: g.date,
         Pedidos: String(g.orders.length),
+      },
+      extraTable: {
+        title: "Total por tipo de producto (alistamiento)",
+        columns: ["Producto", "Cantidad total"],
+        rows: totals.map((t) => [t.name, t.quantity]),
       },
       filename: `ruta_${g.driverName.replace(/\s+/g, "_")}_${g.date}.pdf`,
     });

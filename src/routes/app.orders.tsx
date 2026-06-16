@@ -72,8 +72,10 @@ interface LineDraft {
 
 function OrdersPage() {
   const qc = useQueryClient();
-  const { user, roles } = useAuth();
+  const { user, roles, hasAnyRole } = useAuth();
   const sellerOnly = isSellerScoped(roles);
+  // Solo administrador y logística pueden marcar entregado / convertir en venta.
+  const canDeliver = hasAnyRole(["admin", "logistics_operator"]);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -520,7 +522,11 @@ function OrdersPage() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {Object.entries(statusLabel).map(([k, v]) => (
-                                      <SelectItem key={k} value={k}>
+                                      <SelectItem
+                                        key={k}
+                                        value={k}
+                                        disabled={k === "delivered" && !canDeliver}
+                                      >
                                         {v}
                                       </SelectItem>
                                     ))}
@@ -536,7 +542,8 @@ function OrdersPage() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    disabled={!canConvert || convertMutation.isPending}
+                                    disabled={!canConvert || !canDeliver || convertMutation.isPending}
+                                    title={!canDeliver ? "Solo logística o administrador puede convertir en venta" : undefined}
                                     onClick={() => convertMutation.mutate(o.id)}
                                   >
                                     Convertir en venta
