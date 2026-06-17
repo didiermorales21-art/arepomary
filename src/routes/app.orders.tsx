@@ -76,6 +76,7 @@ function OrdersPage() {
   const sellerOnly = isSellerScoped(roles);
   // Solo administrador y logística pueden marcar entregado / convertir en venta.
   const canDeliver = hasAnyRole(["admin", "logistics_operator"]);
+  const isAdmin = hasAnyRole(["admin"]);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
