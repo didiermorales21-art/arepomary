@@ -521,15 +521,22 @@ function OrdersPage() {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {Object.entries(statusLabel).map(([k, v]) => (
-                                      <SelectItem
-                                        key={k}
-                                        value={k}
-                                        disabled={k === "delivered" && !canDeliver}
-                                      >
-                                        {v}
-                                      </SelectItem>
-                                    ))}
+                                    {Object.entries(statusLabel).map(([k, v]) => {
+                                      // Vendedor: no puede cancelar si ya está entregado o convertido en venta.
+                                      const sellerBlockCancel =
+                                        k === "cancelled" &&
+                                        sellerOnly &&
+                                        (o.status === "delivered" || !!existingSale);
+                                      return (
+                                        <SelectItem
+                                          key={k}
+                                          value={k}
+                                          disabled={(k === "delivered" && !canDeliver) || sellerBlockCancel}
+                                        >
+                                          {v}
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                               </TableCell>

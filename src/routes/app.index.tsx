@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { DollarSign, ShoppingCart, Users, AlertCircle } from "lucide-react";
+import { DollarSign, ShoppingCart, Users, AlertCircle, Wallet, Coins } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
@@ -88,11 +88,35 @@ function Dashboard() {
     },
   });
 
+  // Comisiones del vendedor: paid (histórico) + pending (por cobrar).
+  const { data: commissions } = useQuery({
+    queryKey: ["seller-commissions", user?.id],
+    enabled: !!user && sellerOnly,
+    queryFn: async () => {
+      const [paidRes, pendingRes] = await Promise.all([
+        supabase.from("commission_payments").select("amount").eq("seller_id", user!.id),
+        supabase.rpc("seller_pending_commission_invoices" as any, { _seller_id: user!.id }),
+      ]);
+      const paid = (paidRes.data ?? []).reduce((s, r: any) => s + Number(r.amount || 0), 0);
+      const pending = ((pendingRes.data as any[]) ?? []).reduce(
+        (s, r: any) => s + Number(r.amount || 0),
+        0,
+      );
+      return { paid, pending, generated: paid + pending };
+    },
+  });
+
   const cards = [
     { label: "Ventas totales", value: fmt(kpis?.totalSales ?? 0), icon: DollarSign, accent: "bg-gradient-primary" },
     { label: "Órdenes", value: String(kpis?.salesCount ?? 0), icon: ShoppingCart, accent: "bg-gradient-gold" },
     { label: "Clientes", value: String(kpis?.customers ?? 0), icon: Users, accent: "bg-gradient-primary" },
     { label: "Cartera pendiente", value: fmt(kpis?.receivables ?? 0), icon: AlertCircle, accent: "bg-gradient-gold" },
+    ...(sellerOnly
+      ? [
+          { label: "Comisiones generadas", value: fmt(commissions?.generated ?? 0), icon: Coins, accent: "bg-gradient-primary" },
+          { label: "Comisiones por cobrar", value: fmt(commissions?.pending ?? 0), icon: Wallet, accent: "bg-gradient-gold" },
+        ]
+      : []),
   ];
 
   const resetRange = () => {
