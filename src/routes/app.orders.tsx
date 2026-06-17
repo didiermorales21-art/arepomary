@@ -76,6 +76,7 @@ function OrdersPage() {
   const sellerOnly = isSellerScoped(roles);
   // Solo administrador y logística pueden marcar entregado / convertir en venta.
   const canDeliver = hasAnyRole(["admin", "logistics_operator"]);
+  const isAdmin = hasAnyRole(["admin"]);
   const [open, setOpen] = useState(false);
   const [customerId, setCustomerId] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
@@ -489,7 +490,10 @@ function OrdersPage() {
                       ) : (
                         filtered.map((o: any) => {
                           const existingSale = Array.isArray(o.sales) ? o.sales[0] : o.sales;
-                          const canConvert = o.status !== "draft" && o.status !== "cancelled" && !existingSale;
+                          // Solo se puede convertir en venta si el pedido está entregado.
+                          const canConvert = o.status === "delivered" && !existingSale;
+                          // Si ya está convertido en venta, solo el administrador puede modificar el estado.
+                          const lockedBySale = !!existingSale && !isAdmin;
                           const items: ItemLite[] = (o.order_items ?? []).map((it: any) => ({
                             name: it.products?.name ?? "—",
                             quantity: Number(it.quantity ?? 0),
@@ -516,8 +520,12 @@ function OrdersPage() {
                                 <Select
                                   value={statusLabel[o.status] ? o.status : "confirmed"}
                                   onValueChange={(v) => updateStatus.mutate({ id: o.id, status: v })}
+                                  disabled={lockedBySale}
                                 >
-                                  <SelectTrigger className="h-8">
+                                  <SelectTrigger
+                                    className="h-8"
+                                    title={lockedBySale ? "Pedido ya convertido en venta. Solo el administrador puede modificarlo." : undefined}
+                                  >
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -550,7 +558,13 @@ function OrdersPage() {
                                     size="sm"
                                     variant="outline"
                                     disabled={!canConvert || !canDeliver || convertMutation.isPending}
-                                    title={!canDeliver ? "Solo logística o administrador puede convertir en venta" : undefined}
+                                    title={
+                                      !canDeliver
+                                        ? "Solo logística o administrador puede convertir en venta"
+                                        : o.status !== "delivered"
+                                          ? "El pedido debe estar en estado Entregado para convertirlo en venta"
+                                          : undefined
+                                    }
                                     onClick={() => convertMutation.mutate(o.id)}
                                   >
                                     Convertir en venta
