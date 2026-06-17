@@ -156,7 +156,7 @@ function SalesPage() {
       <PageHeader
         title="Ventas"
         description="Registra ventas y haz seguimiento de pagos y cartera."
-        actions={
+        actions={sellerOnly ? null : (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-primary shadow-elegant">
@@ -260,7 +260,7 @@ function SalesPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        }
+        )}
       />
       <div className="p-6">
         <div className="rounded-xl border bg-card shadow-card">
