@@ -87,13 +87,22 @@ function ProductsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string): Promise<"deleted" | "deactivated"> => {
       const { error } = await supabase.from("products").delete().eq("id", id);
-      if (error) throw error;
+      if (!error) return "deleted";
+      // FK violation → soft delete (preserves history)
+      if ((error as any).code === "23503" || /foreign key/i.test(error.message)) {
+        const { error: upErr } = await supabase.from("products").update({ active: false }).eq("id", id);
+        if (upErr) throw upErr;
+        return "deactivated";
+      }
+      throw error;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["products"] });
-      toast.success("Producto eliminado");
+      toast.success(result === "deactivated"
+        ? "Producto con historial: se desactivó en lugar de eliminarse."
+        : "Producto eliminado");
     },
     onError: (e: Error) => toast.error(e.message),
   });
