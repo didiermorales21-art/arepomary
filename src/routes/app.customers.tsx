@@ -428,12 +428,12 @@ function CustomersPage() {
               }}
             >
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" defaultValue={editing.document_id || ""} inputMode="numeric" /></div>
-                <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={editPhone} className="h-8 text-sm" onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))} {...PHONE_INPUT_PROPS} /></div>
+                <div className="space-y-1"><Label className="text-xs">Documento <span className="text-muted-foreground">(opcional)</span></Label><Input name="document_id" className="h-8 text-sm" defaultValue={editing.document_id || ""} inputMode="numeric" /></div>
+                <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={editPhone} className="h-8 text-sm" onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))} required {...PHONE_INPUT_PROPS} /></div>
                 <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" defaultValue={editing.first_name || ""} required /></div>
-                <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" defaultValue={editing.last_name || ""} /></div>
-                <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" defaultValue={editing.email || ""} /></div>
-                <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" defaultValue={editing.address || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" defaultValue={editing.last_name || ""} required /></div>
+                <div className="space-y-1"><Label className="text-xs">Email <span className="text-muted-foreground">(opcional)</span></Label><Input name="email" type="email" className="h-8 text-sm" defaultValue={editing.email || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" defaultValue={editing.address || ""} required /></div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-xs">Barrio</Label>
                   <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
