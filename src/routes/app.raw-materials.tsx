@@ -114,13 +114,21 @@ function RawMaterialsPage() {
   });
 
   const deleteRm = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string): Promise<"deleted" | "deactivated"> => {
       const { error } = await supabase.from("raw_materials" as any).delete().eq("id", id);
-      if (error) throw error;
+      if (!error) return "deleted";
+      if ((error as any).code === "23503" || /foreign key/i.test(error.message)) {
+        const { error: upErr } = await supabase.from("raw_materials" as any).update({ active: false }).eq("id", id);
+        if (upErr) throw upErr;
+        return "deactivated";
+      }
+      throw error;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["raw-materials"] });
-      toast.success("Materia prima eliminada");
+      toast.success(result === "deactivated"
+        ? "Materia prima con historial: se desactivó en lugar de eliminarse."
+        : "Materia prima eliminada");
     },
     onError: (e: Error) => toast.error(e.message),
   });

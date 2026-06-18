@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil } from "lucide-react";
+import { Plus, Search, Pencil, Download } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -43,6 +43,8 @@ function CustomersPage() {
   const isAdmin = hasRole("admin");
   const sellerOnly = isSellerScoped(roles);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [sellerId, setSellerId] = useState<string>("");
@@ -98,15 +100,42 @@ function CustomersPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return customers ?? [];
-    return (customers ?? []).filter(
-      (c: any) =>
-        c.name.toLowerCase().includes(q) ||
+    return (customers ?? []).filter((c: any) => {
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (isAdmin && sellerFilter !== "all" && c.seller_id !== sellerFilter) return false;
+      if (!q) return true;
+      return (
+        c.name?.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
         c.document_id?.toLowerCase().includes(q) ||
-        c.address?.toLowerCase().includes(q),
-    );
-  }, [customers, search]);
+        c.address?.toLowerCase().includes(q)
+      );
+    });
+  }, [customers, search, statusFilter, sellerFilter, isAdmin]);
+
+  function downloadCsv() {
+    const rows = filtered as any[];
+    const header = ["Nombre","Documento","Teléfono","Email","Dirección","Barrio","Vendedor","Tipo","Estado"];
+    const esc = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(";")];
+    for (const c of rows) {
+      lines.push([
+        c.name, c.document_id || "", c.phone || "", c.email || "", c.address || "",
+        c.neighborhoods?.name || "", sellerNameMap.get(c.seller_id) || "",
+        c.customer_type === "wholesale" ? "Comercial" : "Estándar", c.status,
+      ].map(esc).join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clientes-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const createMutation = useMutation({
     mutationFn: async (input: any) => {
@@ -114,6 +143,9 @@ function CustomersPage() {
       if (!isValidPhone(input.phone)) throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
       if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      if (!input.last_name.trim()) throw new Error("Los apellidos son obligatorios");
+      if (!input.address.trim()) throw new Error("La dirección es obligatoria");
+      if (!input.neighborhood_id) throw new Error("El barrio es obligatorio");
       const composed = `${input.first_name} ${input.last_name}`.trim();
       const { error } = await supabase.from("customers").insert({
         name: composed,
@@ -148,6 +180,9 @@ function CustomersPage() {
       if (input.phone && !isValidPhone(input.phone)) throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
       if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      if (!input.last_name.trim()) throw new Error("Los apellidos son obligatorios");
+      if (!input.address.trim()) throw new Error("La dirección es obligatoria");
+      if (!input.neighborhood_id) throw new Error("El barrio es obligatorio");
       const composed = `${input.first_name} ${input.last_name}`.trim();
       const update: any = {
         name: composed,
@@ -224,15 +259,15 @@ function CustomersPage() {
                 }}
               >
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" inputMode="numeric" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Documento <span className="text-muted-foreground">(opcional)</span></Label><Input name="document_id" className="h-8 text-sm" inputMode="numeric" /></div>
                   <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={phone} className="h-8 text-sm" onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))} required {...PHONE_INPUT_PROPS} /></div>
                   <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" required /></div>
-                  <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" /></div>
-                  <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" /></div>
-                  <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Email <span className="text-muted-foreground">(opcional)</span></Label><Input name="email" type="email" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" required /></div>
                   <div className="space-y-1 col-span-2">
                     <Label className="text-xs">Barrio</Label>
-                    <Select name="neighborhood_id">
+                    <Select name="neighborhood_id" required>
                       <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona un barrio" /></SelectTrigger>
                       <SelectContent>
                         {(neighborhoods ?? []).map((n: any) => (
@@ -282,9 +317,33 @@ function CustomersPage() {
         }
       />
       <div className="space-y-4 p-6">
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre, documento, teléfono…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar por nombre, documento, teléfono…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="inactive">Inactivos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+          {isAdmin && (
+            <Select value={sellerFilter} onValueChange={setSellerFilter}>
+              <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los vendedores</SelectItem>
+                {(sellers ?? []).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.full_name || "—"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="outline" size="sm" onClick={downloadCsv} className="ml-auto">
+            <Download className="mr-1 h-4 w-4" /> Descargar CSV
+          </Button>
         </div>
 
         <div className="rounded-xl border bg-card shadow-card">
@@ -369,12 +428,12 @@ function CustomersPage() {
               }}
             >
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" defaultValue={editing.document_id || ""} inputMode="numeric" /></div>
-                <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={editPhone} className="h-8 text-sm" onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))} {...PHONE_INPUT_PROPS} /></div>
+                <div className="space-y-1"><Label className="text-xs">Documento <span className="text-muted-foreground">(opcional)</span></Label><Input name="document_id" className="h-8 text-sm" defaultValue={editing.document_id || ""} inputMode="numeric" /></div>
+                <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={editPhone} className="h-8 text-sm" onChange={(e) => setEditPhone(sanitizePhoneInput(e.target.value))} required {...PHONE_INPUT_PROPS} /></div>
                 <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" defaultValue={editing.first_name || ""} required /></div>
-                <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" defaultValue={editing.last_name || ""} /></div>
-                <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" defaultValue={editing.email || ""} /></div>
-                <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" defaultValue={editing.address || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" defaultValue={editing.last_name || ""} required /></div>
+                <div className="space-y-1"><Label className="text-xs">Email <span className="text-muted-foreground">(opcional)</span></Label><Input name="email" type="email" className="h-8 text-sm" defaultValue={editing.email || ""} /></div>
+                <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" defaultValue={editing.address || ""} required /></div>
                 <div className="space-y-1 col-span-2">
                   <Label className="text-xs">Barrio</Label>
                   <Select value={editNeighborhoodId} onValueChange={setEditNeighborhoodId}>
