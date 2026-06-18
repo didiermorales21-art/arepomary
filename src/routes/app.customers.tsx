@@ -259,15 +259,15 @@ function CustomersPage() {
                 }}
               >
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1"><Label className="text-xs">Documento</Label><Input name="document_id" className="h-8 text-sm" inputMode="numeric" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Documento <span className="text-muted-foreground">(opcional)</span></Label><Input name="document_id" className="h-8 text-sm" inputMode="numeric" /></div>
                   <div className="space-y-1"><Label className="text-xs">Teléfono</Label><Input value={phone} className="h-8 text-sm" onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))} required {...PHONE_INPUT_PROPS} /></div>
                   <div className="space-y-1"><Label className="text-xs">Nombres</Label><Input name="first_name" className="h-8 text-sm" required /></div>
-                  <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" /></div>
-                  <div className="space-y-1"><Label className="text-xs">Email</Label><Input name="email" type="email" className="h-8 text-sm" /></div>
-                  <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Apellidos</Label><Input name="last_name" className="h-8 text-sm" required /></div>
+                  <div className="space-y-1"><Label className="text-xs">Email <span className="text-muted-foreground">(opcional)</span></Label><Input name="email" type="email" className="h-8 text-sm" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Dirección</Label><Input name="address" className="h-8 text-sm" required /></div>
                   <div className="space-y-1 col-span-2">
                     <Label className="text-xs">Barrio</Label>
-                    <Select name="neighborhood_id">
+                    <Select name="neighborhood_id" required>
                       <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecciona un barrio" /></SelectTrigger>
                       <SelectContent>
                         {(neighborhoods ?? []).map((n: any) => (
