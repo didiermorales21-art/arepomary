@@ -317,9 +317,33 @@ function CustomersPage() {
         }
       />
       <div className="space-y-4 p-6">
-        <div className="relative max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por nombre, documento, teléfono…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative max-w-sm flex-1 min-w-[220px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar por nombre, documento, teléfono…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="inactive">Inactivos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+          {isAdmin && (
+            <Select value={sellerFilter} onValueChange={setSellerFilter}>
+              <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los vendedores</SelectItem>
+                {(sellers ?? []).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.full_name || "—"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Button variant="outline" size="sm" onClick={downloadCsv} className="ml-auto">
+            <Download className="mr-1 h-4 w-4" /> Descargar CSV
+          </Button>
         </div>
 
         <div className="rounded-xl border bg-card shadow-card">
