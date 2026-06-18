@@ -100,15 +100,42 @@ function CustomersPage() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return customers ?? [];
-    return (customers ?? []).filter(
-      (c: any) =>
-        c.name.toLowerCase().includes(q) ||
+    return (customers ?? []).filter((c: any) => {
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (isAdmin && sellerFilter !== "all" && c.seller_id !== sellerFilter) return false;
+      if (!q) return true;
+      return (
+        c.name?.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
         c.document_id?.toLowerCase().includes(q) ||
-        c.address?.toLowerCase().includes(q),
-    );
-  }, [customers, search]);
+        c.address?.toLowerCase().includes(q)
+      );
+    });
+  }, [customers, search, statusFilter, sellerFilter, isAdmin]);
+
+  function downloadCsv() {
+    const rows = filtered as any[];
+    const header = ["Nombre","Documento","Teléfono","Email","Dirección","Barrio","Vendedor","Tipo","Estado"];
+    const esc = (v: any) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [header.join(";")];
+    for (const c of rows) {
+      lines.push([
+        c.name, c.document_id || "", c.phone || "", c.email || "", c.address || "",
+        c.neighborhoods?.name || "", sellerNameMap.get(c.seller_id) || "",
+        c.customer_type === "wholesale" ? "Comercial" : "Estándar", c.status,
+      ].map(esc).join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `clientes-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const createMutation = useMutation({
     mutationFn: async (input: any) => {
