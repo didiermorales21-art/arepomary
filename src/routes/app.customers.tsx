@@ -143,6 +143,9 @@ function CustomersPage() {
       if (!isValidPhone(input.phone)) throw new Error("El teléfono debe tener 10 dígitos y comenzar con 3");
       if (!input.seller_id) throw new Error("Debes seleccionar un vendedor");
       if (!input.first_name.trim()) throw new Error("Los nombres son obligatorios");
+      if (!input.last_name.trim()) throw new Error("Los apellidos son obligatorios");
+      if (!input.address.trim()) throw new Error("La dirección es obligatoria");
+      if (!input.neighborhood_id) throw new Error("El barrio es obligatorio");
       const composed = `${input.first_name} ${input.last_name}`.trim();
       const { error } = await supabase.from("customers").insert({
         name: composed,
