@@ -43,6 +43,8 @@ function CustomersPage() {
   const isAdmin = hasRole("admin");
   const sellerOnly = isSellerScoped(roles);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [sellerId, setSellerId] = useState<string>("");
