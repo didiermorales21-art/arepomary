@@ -379,7 +379,7 @@ function LogisticsPage() {
           <TabsList>
             <TabsTrigger value="shipments">Envíos del día</TabsTrigger>
             <TabsTrigger value="unassigned">Por asignar ({unassignedOrders.length})</TabsTrigger>
-            <TabsTrigger value="drivers">Conductores</TabsTrigger>
+            <TabsTrigger value="drivers">Repartidores</TabsTrigger>
           </TabsList>
 
           <TabsContent value="shipments" className="mt-4 space-y-4">
