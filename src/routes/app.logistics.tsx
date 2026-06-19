@@ -592,9 +592,6 @@ function LogisticsPage() {
                       </div>
                       <div>
                         <h3 className="font-display text-lg font-semibold">{d.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {d.license_plate ?? "—"} · {d.vehicle ?? "Sin vehículo"}
-                        </p>
                         {d.phone && <p className="text-xs text-muted-foreground">{d.phone}</p>}
                       </div>
                     </div>
@@ -602,8 +599,9 @@ function LogisticsPage() {
                 </Card>
               ))}
               {(drivers ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay conductores registrados.</p>
+                <p className="text-sm text-muted-foreground">No hay repartidores registrados.</p>
               )}
+
             </div>
           </TabsContent>
         </Tabs>
