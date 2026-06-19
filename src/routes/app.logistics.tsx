@@ -66,11 +66,12 @@ type OrderRow = {
         neighborhoods?: { name?: string | null; zones?: { name?: string | null; priority?: number | null } | null } | null;
       }
     | null;
-  drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
+  drivers?: { name?: string | null; phone?: string | null } | null;
   order_items?: Array<{ quantity?: number | null; products?: { name?: string | null } | null }> | null;
 };
 
-type DriverRow = { id: string; name: string; phone: string | null; license_plate: string | null; vehicle: string | null };
+type DriverRow = { id: string; name: string; phone: string | null };
+
 
 function LogisticsPage() {
   const qc = useQueryClient();
@@ -86,7 +87,7 @@ function LogisticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone), order_items(quantity, products(name))")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers:collaborators!orders_driver_id_fkey(name:full_name, phone), order_items(quantity, products(name))")
         .not("status", "in", "(cancelled)")
         .order("delivery_date", { ascending: true })
         .order("order_number", { ascending: false })
@@ -99,24 +100,37 @@ function LogisticsPage() {
   const { data: drivers } = useQuery({
     queryKey: ["drivers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("drivers").select("*").eq("active", true).order("name");
+      const { data, error } = await supabase
+        .from("collaborators")
+        .select("id, full_name, phone, cost_items!inner(key)")
+        .eq("active", true)
+        .eq("cost_items.key", "repartidor")
+        .order("full_name");
       if (error) throw error;
-      return (data ?? []) as DriverRow[];
+      return ((data ?? []) as Array<{ id: string; full_name: string | null; phone: string | null }>).map((d) => ({
+        id: d.id,
+        name: d.full_name ?? "",
+        phone: d.phone,
+      })) as DriverRow[];
     },
   });
 
   const createDriver = useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
-      const { error } = await supabase.from("drivers").insert(input as never);
+    mutationFn: async (input: { first_name: string; last_name: string | null; phone: string | null; document_id: string | null }) => {
+      const { data: ci, error: ciErr } = await supabase.from("cost_items").select("id").eq("key", "repartidor").maybeSingle();
+      if (ciErr) throw ciErr;
+      if (!ci) throw new Error("No existe el cargo Repartidor en costos");
+      const { error } = await supabase.from("collaborators").insert({ ...input, cost_item_id: ci.id, active: true } as never);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["drivers"] });
-      toast.success("Conductor creado");
+      toast.success("Repartidor creado");
       setOpenDriver(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const updateOrder = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
@@ -321,10 +335,10 @@ function LogisticsPage() {
           canManage && (
             <Dialog open={openDriver} onOpenChange={setOpenDriver}>
               <DialogTrigger asChild>
-                <Button variant="outline"><User className="mr-1 h-4 w-4" /> Conductor</Button>
+                <Button variant="outline"><User className="mr-1 h-4 w-4" /> Repartidor</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle className="font-display">Nuevo conductor</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle className="font-display">Nuevo repartidor</DialogTitle></DialogHeader>
                 <form
                   className="space-y-3"
                   onSubmit={(e) => {
@@ -336,22 +350,25 @@ function LogisticsPage() {
                       return;
                     }
                     createDriver.mutate({
-                      name: String(fd.get("name") || ""),
+                      first_name: String(fd.get("first_name") || ""),
+                      last_name: String(fd.get("last_name") || "") || null,
                       phone: phone || null,
-                      license_plate: String(fd.get("license_plate") || "") || null,
-                      vehicle: String(fd.get("vehicle") || "") || null,
+                      document_id: String(fd.get("document_id") || "") || null,
                     });
                   }}
                 >
-                  <div className="space-y-2"><Label>Nombre</Label><Input name="name" required /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2"><Label>Nombres</Label><Input name="first_name" required /></div>
+                    <div className="space-y-2"><Label>Apellidos</Label><Input name="last_name" /></div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
-                    <div className="space-y-2"><Label>Placa</Label><Input name="license_plate" /></div>
+                    <div className="space-y-2"><Label>Documento</Label><Input name="document_id" /></div>
                   </div>
-                  <div className="space-y-2"><Label>Vehículo</Label><Input name="vehicle" placeholder="Camioneta NPR" /></div>
                   <DialogFooter><Button type="submit" disabled={createDriver.isPending} className="bg-gradient-primary">Guardar</Button></DialogFooter>
                 </form>
               </DialogContent>
+
             </Dialog>
           )
         }
@@ -362,7 +379,7 @@ function LogisticsPage() {
           <TabsList>
             <TabsTrigger value="shipments">Envíos del día</TabsTrigger>
             <TabsTrigger value="unassigned">Por asignar ({unassignedOrders.length})</TabsTrigger>
-            <TabsTrigger value="drivers">Conductores</TabsTrigger>
+            <TabsTrigger value="drivers">Repartidores</TabsTrigger>
           </TabsList>
 
           <TabsContent value="shipments" className="mt-4 space-y-4">
@@ -575,9 +592,6 @@ function LogisticsPage() {
                       </div>
                       <div>
                         <h3 className="font-display text-lg font-semibold">{d.name}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {d.license_plate ?? "—"} · {d.vehicle ?? "Sin vehículo"}
-                        </p>
                         {d.phone && <p className="text-xs text-muted-foreground">{d.phone}</p>}
                       </div>
                     </div>
@@ -585,8 +599,9 @@ function LogisticsPage() {
                 </Card>
               ))}
               {(drivers ?? []).length === 0 && (
-                <p className="text-sm text-muted-foreground">No hay conductores registrados.</p>
+                <p className="text-sm text-muted-foreground">No hay repartidores registrados.</p>
               )}
+
             </div>
           </TabsContent>
         </Tabs>
