@@ -335,10 +335,10 @@ function LogisticsPage() {
           canManage && (
             <Dialog open={openDriver} onOpenChange={setOpenDriver}>
               <DialogTrigger asChild>
-                <Button variant="outline"><User className="mr-1 h-4 w-4" /> Conductor</Button>
+                <Button variant="outline"><User className="mr-1 h-4 w-4" /> Repartidor</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle className="font-display">Nuevo conductor</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle className="font-display">Nuevo repartidor</DialogTitle></DialogHeader>
                 <form
                   className="space-y-3"
                   onSubmit={(e) => {
@@ -350,22 +350,25 @@ function LogisticsPage() {
                       return;
                     }
                     createDriver.mutate({
-                      name: String(fd.get("name") || ""),
+                      first_name: String(fd.get("first_name") || ""),
+                      last_name: String(fd.get("last_name") || "") || null,
                       phone: phone || null,
-                      license_plate: String(fd.get("license_plate") || "") || null,
-                      vehicle: String(fd.get("vehicle") || "") || null,
+                      document_id: String(fd.get("document_id") || "") || null,
                     });
                   }}
                 >
-                  <div className="space-y-2"><Label>Nombre</Label><Input name="name" required /></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2"><Label>Nombres</Label><Input name="first_name" required /></div>
+                    <div className="space-y-2"><Label>Apellidos</Label><Input name="last_name" /></div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-2"><Label>Teléfono</Label><Input name="phone" {...PHONE_INPUT_PROPS} onInput={(e) => { e.currentTarget.value = sanitizePhoneInput(e.currentTarget.value); }} /></div>
-                    <div className="space-y-2"><Label>Placa</Label><Input name="license_plate" /></div>
+                    <div className="space-y-2"><Label>Documento</Label><Input name="document_id" /></div>
                   </div>
-                  <div className="space-y-2"><Label>Vehículo</Label><Input name="vehicle" placeholder="Camioneta NPR" /></div>
                   <DialogFooter><Button type="submit" disabled={createDriver.isPending} className="bg-gradient-primary">Guardar</Button></DialogFooter>
                 </form>
               </DialogContent>
+
             </Dialog>
           )
         }
