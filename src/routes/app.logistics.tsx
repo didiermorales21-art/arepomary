@@ -66,11 +66,12 @@ type OrderRow = {
         neighborhoods?: { name?: string | null; zones?: { name?: string | null; priority?: number | null } | null } | null;
       }
     | null;
-  drivers?: { name?: string | null; license_plate?: string | null; phone?: string | null } | null;
+  drivers?: { name?: string | null; phone?: string | null } | null;
   order_items?: Array<{ quantity?: number | null; products?: { name?: string | null } | null }> | null;
 };
 
-type DriverRow = { id: string; name: string; phone: string | null; license_plate: string | null; vehicle: string | null };
+type DriverRow = { id: string; name: string; phone: string | null };
+
 
 function LogisticsPage() {
   const qc = useQueryClient();
