@@ -258,6 +258,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
@@ -272,6 +273,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
@@ -286,6 +288,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -573,36 +576,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      drivers: {
-        Row: {
-          active: boolean
-          created_at: string
-          id: string
-          license_plate: string | null
-          name: string
-          phone: string | null
-          vehicle: string | null
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          license_plate?: string | null
-          name: string
-          phone?: string | null
-          vehicle?: string | null
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          id?: string
-          license_plate?: string | null
-          name?: string
-          phone?: string | null
-          vehicle?: string | null
-        }
-        Relationships: []
       }
       inventory: {
         Row: {
@@ -999,7 +972,7 @@ export type Database = {
             foreignKeyName: "orders_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "drivers"
+            referencedRelation: "collaborators"
             referencedColumns: ["id"]
           },
         ]
@@ -1510,7 +1483,7 @@ export type Database = {
             foreignKeyName: "shipments_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
-            referencedRelation: "drivers"
+            referencedRelation: "collaborators"
             referencedColumns: ["id"]
           },
           {
