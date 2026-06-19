@@ -840,6 +840,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          priority: number
           updated_at: string
           zone_id: string
         }
@@ -848,6 +849,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          priority?: number
           updated_at?: string
           zone_id: string
         }
@@ -856,6 +858,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          priority?: number
           updated_at?: string
           zone_id?: string
         }
