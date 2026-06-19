@@ -87,7 +87,7 @@ function LogisticsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers(name, license_plate, phone), order_items(quantity, products(name))")
+        .select("id, order_number, status, total, notes, delivery_date, driver_id, customer_id, customers(name, phone, address, neighborhoods(name, zones(name, priority))), drivers:collaborators!orders_driver_id_fkey(name:full_name, phone), order_items(quantity, products(name))")
         .not("status", "in", "(cancelled)")
         .order("delivery_date", { ascending: true })
         .order("order_number", { ascending: false })
@@ -100,24 +100,37 @@ function LogisticsPage() {
   const { data: drivers } = useQuery({
     queryKey: ["drivers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("drivers").select("*").eq("active", true).order("name");
+      const { data, error } = await supabase
+        .from("collaborators")
+        .select("id, full_name, phone, cost_items!inner(key)")
+        .eq("active", true)
+        .eq("cost_items.key", "repartidor")
+        .order("full_name");
       if (error) throw error;
-      return (data ?? []) as DriverRow[];
+      return ((data ?? []) as Array<{ id: string; full_name: string | null; phone: string | null }>).map((d) => ({
+        id: d.id,
+        name: d.full_name ?? "",
+        phone: d.phone,
+      })) as DriverRow[];
     },
   });
 
   const createDriver = useMutation({
-    mutationFn: async (input: Record<string, unknown>) => {
-      const { error } = await supabase.from("drivers").insert(input as never);
+    mutationFn: async (input: { first_name: string; last_name: string | null; phone: string | null; document_id: string | null }) => {
+      const { data: ci, error: ciErr } = await supabase.from("cost_items").select("id").eq("key", "repartidor").maybeSingle();
+      if (ciErr) throw ciErr;
+      if (!ci) throw new Error("No existe el cargo Repartidor en costos");
+      const { error } = await supabase.from("collaborators").insert({ ...input, cost_item_id: ci.id, active: true } as never);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["drivers"] });
-      toast.success("Conductor creado");
+      toast.success("Repartidor creado");
       setOpenDriver(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const updateOrder = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, unknown> }) => {
